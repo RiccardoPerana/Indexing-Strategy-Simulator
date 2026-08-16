@@ -4,6 +4,8 @@
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
+![Indexing Strategy Simulator main window]<img width="1920" height="1080" alt="Main Window" src="https://github.com/user-attachments/assets/2e96b179-488d-4d14-8e52-9ad2c5e5a9f3" />
+
 A backtesting tool for DCA-style (dollar-cost-averaging) index investing
 strategies. Define a strategy as a set of simple rules ("buy more during
 a crash," "escalate contributions the longer a downturn runs"), test it
@@ -52,11 +54,17 @@ being fit to, not because the rule is actually sound. See
 
 ## Screenshots
 
-*(Add screenshots before publishing. Suggested shots, roughly in order of
-value: the main window at rest; a completed backtest with the sustained-
-trend highlighting visible; the Compare All table with its ranked color-
-coding; the custom strategy builder dialog; linear vs. log scale side by
-side.)*
+### Compare All
+![Compare All table]<img width="1920" height="1080" alt="Compare All" src="https://github.com/user-attachments/assets/9caa7c22-6432-4d0e-a7c1-ed87e48a6bf2" />
+
+
+### Custom Strategy Builder
+![Custom strategy dialog]<img width="573" height="870" alt="Custom Strategy Builder" src="https://github.com/user-attachments/assets/207b5e65-0d5b-4873-b958-a2928a5abd0f" />
+
+
+### Linear vs. logarithmic scale
+![Linear and log scale comparison]<img width="1728" height="1080" alt="scale-comparison" src="https://github.com/user-attachments/assets/5785b5f7-3a93-4893-aef8-9da0640538a8" />
+
 
 ## Installation
 
