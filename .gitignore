@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# PyInstaller build output
+build/
+dist/
+*.spec
+
+# Session-only data -- deleted automatically when the GUI closes, and
+# never something that should be committed even if it happens to exist
+saved_strategies.json
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# OS/editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
