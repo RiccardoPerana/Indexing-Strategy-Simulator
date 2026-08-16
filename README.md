@@ -115,6 +115,8 @@ Settings on the left, chart in the middle, results on the right.
 
 ### Console
 
+<img width="747" height="892" alt="Console" src="https://github.com/user-attachments/assets/ac865c8a-0155-479a-adf2-4e318aef1c2a" />
+
 ```bash
 python main.py
 ```
