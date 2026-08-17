@@ -9,7 +9,7 @@ producing any output directly itself.
 
 import matplotlib.pyplot as plt
 from backtest import BacktestResult
-from interactive_chart import enable_pan_and_scroll_zoom
+from interactive_chart import enable_pan_and_scroll_zoom, enable_hover_tooltip
 
 
 def summary_groups(result: BacktestResult) -> list:
@@ -323,6 +323,10 @@ def build_chart_figure(result: BacktestResult, strategy_name: str,
 
     Pan/scroll-zoom is wired up via enable_pan_and_scroll_zoom, which only
     relies on the generic matplotlib event system (fig.canvas.mpl_connect).
+    A hover tooltip reporting the MEDIAN line's price at the cursor's x
+    position is wired up via enable_hover_tooltip -- deliberately reports
+    only the median line, not every sample run too, consistent with
+    median being the headline number throughout this project.
 
     dark_mode=True colors the chart to match gui_theme.py's palette (see
     _apply_dark_chart_styling).
@@ -337,4 +341,15 @@ def build_chart_figure(result: BacktestResult, strategy_name: str,
     _draw_chart(ax_chart, result, strategy_name, num_sample_runs, dark_mode=dark_mode, y_scale=y_scale)
     fig.tight_layout()
     enable_pan_and_scroll_zoom(fig, ax_chart)
+
+    median_prices = result.median_price_by_month()
+    years_axis = [m / 12 for m in range(len(median_prices))]
+    if dark_mode:
+        import gui_theme
+        tooltip_bg, tooltip_text = gui_theme.CHART_MEDIAN_LINE, gui_theme.BG_DARKEST
+    else:
+        tooltip_bg, tooltip_text = "white", "black"
+    enable_hover_tooltip(fig, ax_chart, years_axis, median_prices,
+                          bg_color=tooltip_bg, text_color=tooltip_text)
+
     return fig

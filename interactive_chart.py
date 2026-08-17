@@ -73,6 +73,82 @@ def _compute_axis_drag_rescale(cur_lim, drag_pixels, axis_length_pixels, sensiti
     return (center - new_width / 2, center + new_width / 2)
 
 
+def _find_nearest_index(x_values: list, x_query: float) -> int:
+    """
+    Pure lookup, factored out so it can be unit-tested without a live GUI
+    event loop. Returns the index into x_values whose value is closest to
+    x_query. Linear scan rather than binary search -- x_values here is a
+    few hundred points at most (months in a 50-year run), so the
+    difference is not measurable, and a linear scan doesn't require
+    x_values to be sorted (binary search would).
+    """
+    best_i = 0
+    best_dist = abs(x_values[0] - x_query)
+    for i, x in enumerate(x_values):
+        dist = abs(x - x_query)
+        if dist < best_dist:
+            best_dist = dist
+            best_i = i
+    return best_i
+
+
+def enable_hover_tooltip(fig: "matplotlib.figure.Figure", ax: "matplotlib.axes.Axes",
+                          x_values: list, y_values: list,
+                          x_label: str = "Year", y_format: str = "\u20ac{:,.2f}",
+                          bg_color: str = "white", text_color: str = "black") -> None:
+    """
+    Shows a small text tag in the corner of the axes reporting the
+    nearest data point's value as the mouse moves over the chart --
+    e.g. "Year 23.4  ->  \u20ac187.32", updating live.
+
+    x_values/y_values must be the same length and index-aligned (e.g. the
+    chart's years-axis and its median price line) -- the tag reports
+    whichever (x_values[i], y_values[i]) pair has x_values[i] closest to
+    the cursor's data-space x position. Deliberately reports only ONE
+    line's value (the primary/median line the caller passes in), not
+    every line on the chart -- consistent with median being the
+    headline number throughout this project rather than cluttering the
+    tag with the individual sample runs too.
+
+    Positioned in a fixed corner rather than following the cursor's exact
+    pixel position -- simpler, and avoids needing special-case math for
+    where "the cursor's position" would even mean on a logarithmic y-axis.
+
+    Hidden when the cursor leaves the axes, and suppressed while a
+    button is held (event.button is not None during an active pan or
+    axis-drag gesture from enable_pan_and_scroll_zoom) so the tag doesn't
+    update mid-drag.
+    """
+    if not x_values:
+        return
+
+    annotation = ax.text(
+        0.98, 0.98, "", transform=ax.transAxes, fontsize=9,
+        va="top", ha="right", zorder=10,
+        bbox=dict(boxstyle="round,pad=0.35", facecolor=bg_color, edgecolor=bg_color, alpha=0.85),
+        color=text_color,
+    )
+    annotation.set_visible(False)
+
+    def on_move(event):
+        if event.inaxes != ax or event.xdata is None or event.button is not None:
+            if annotation.get_visible():
+                annotation.set_visible(False)
+                fig.canvas.draw_idle()
+            return
+        idx = _find_nearest_index(x_values, event.xdata)
+        annotation.set_text(f"{x_label} {x_values[idx]:.1f}   {y_format.format(y_values[idx])}")
+        annotation.set_visible(True)
+        fig.canvas.draw_idle()
+
+    def on_leave(event):
+        annotation.set_visible(False)
+        fig.canvas.draw_idle()
+
+    fig.canvas.mpl_connect("motion_notify_event", on_move)
+    fig.canvas.mpl_connect("axes_leave_event", on_leave)
+
+
 def enable_pan_and_scroll_zoom(fig: "matplotlib.figure.Figure",
                                 ax: "matplotlib.axes.Axes",
                                 zoom_scale: float = 1.15) -> None:
