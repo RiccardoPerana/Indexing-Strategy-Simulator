@@ -6,27 +6,29 @@
 
 ![Indexing Strategy Simulator main window](screenshots/main-window.png)
 
-A backtesting tool for DCA-style (dollar-cost-averaging) index investing
-strategies. A strategy is defined as a set of rules ("buy more during a
-crash," "escalate contributions the longer a downturn runs"), tested
-against dozens of randomly generated 50-year price histories, and
-evaluated either on its own or against every other strategy at once.
+A backtesting tool for capital accumulation indexing strategies,
+such as Dollar Cost Averaging. This tool allows to define a strategy 
+as a set of rules ("buy more during a crash," "escalate contributions 
+the longer a downturn runs"), and to test it against randomly generated 
+price histories, to evaluate its effectiveness or compare it against 
+other strategies.
 
 Prices are randomly generated rather than drawn from historical market
-data — a deliberate choice, not an oversight. See
-[Design philosophy](#design-philosophy) for the reasoning.
+data as a deliberate choice. See [Design philosophy](#design-philosophy) 
+for the reasoning.
 
 ## Features
 
-- **Rule-based strategy engine** — every strategy is data, not custom
-  code: a list of trigger → action rules. Twelve built-in strategies
-  cover common approaches (dollar-cost averaging, crash buying,
-  momentum, drawdown-based accumulation, and others), and a visual
-  builder supports custom strategies.
+- **Rule-based strategy engine** — every strategy is defined as data, 
+  not custom code: a list of trigger → action rules. There are twelve 
+  built-in strategies to cover common approaches: dollar-cost averaging,
+  crash buying, momentum, drawdown-based accumulation, and others, and 
+  the program features a builder to support the creation of custom strategies.
 - **Randomized price simulation** — Geometric Brownian Motion with jump
-  diffusion. Each backtest run samples its own market regime rather than
-  assuming one fixed growth rate, so results reflect a genuine range of
-  possible futures. See [How prices are generated](#how-prices-are-generated).
+  diffusion is used for the creation of time series. Each backtest run 
+  samples its own market regime rather than assuming one fixed growth rate, 
+  so that results reflect a genuine range of possible outcomes. 
+  See [How prices are generated](#how-prices-are-generated).
 - **Median-first statistics** — return, annualized return, and ending
   value are reported as medians rather than averages. See
   [Design philosophy](#design-philosophy) for why this matters.
@@ -57,6 +59,7 @@ data — a deliberate choice, not an oversight. See
 ### Run from source
 
 Requires Python 3.9+.
+Compatible with all major operating systems.
 
 ```bash
 pip install -r requirements.txt
@@ -65,7 +68,8 @@ python gui_tk.py
 
 ### Standalone Windows executable
 
-The easiest option: **[download the latest build from Releases](../../releases/latest)**
+This is the easiest option for installation:
+**[download the latest build from Releases](../../releases/latest)**
 — no Python installation needed at all.
 
 To build one yourself instead:
@@ -74,8 +78,11 @@ To build one yourself instead:
 build_exe.bat
 ```
 
+Or double click the .bat file.
 This runs on Windows only (see [Building a standalone executable](#building-a-standalone-executable)
 below for details and why).
+This will create a /build folder, inside of which will sit an 
+standalone executable containing the program.
 
 ## Usage
 
@@ -108,13 +115,13 @@ one specific sequence of events.
 Prices are generated randomly rather than drawn from a real market's
 history. Testing a strategy against one specific historical sequence
 — the S&P 500's last 50 years, for example — invites the "past
-performance is not indicative of future results" problem directly: a
-strategy tuned to perform well on one historical path is demonstrably
-*fit to that path*, not demonstrably *sound*. A rule such as "buy double
-after a 20% decline" will look excellent when tested against a market
-that happened to recover from every one of its declines; that says
-nothing about how the rule would perform against a market that does not
-recover in the same way.
+performance is not indicative of future results" problem. A strategy 
+fit to perform well on one historical path would be considered a good 
+performer, even when it would not be advisable to use in any other market.
+A rule such as "buy double after a 20% decline" will look excellent when
+tested against a market that happened to recover from every one of its 
+declines; but that says nothing about how the rule would perform against
+a market that does not recover in the same way.
 
 The one assumption this project does rely on — that equities carry a
 positive long-run return expectation, generally exceeding that of bonds
@@ -145,7 +152,7 @@ pushes in the same direction independently.
 Median return describes the outcome a single investor living through
 one actual timeline should expect. Average return describes a
 hypothetical pool of many parallel timelines averaged together, which no
-individual investor experiences. This project reports median as the
+individual investor can experience. This project reports median as the
 primary statistic throughout, with average retained as a secondary
 signal of how skewed a strategy's outcome distribution is.
 
