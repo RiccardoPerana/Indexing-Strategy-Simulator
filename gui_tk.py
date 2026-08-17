@@ -1,12 +1,12 @@
 """
 gui_tk.py
 
-A Tkinter + ttk desktop GUI for the Indexing Strategy Simulator -- an
-alternative front end to cli.py, aimed at people who'd rather click
-through settings than type into a console. Everything here is a thin
-layer over the exact same tested logic the CLI uses: price_generator.py,
+The desktop GUI for the Indexing Strategy Simulator, built with Tkinter +
+ttk. This is the only front end -- an earlier console interface was
+removed once the GUI covered its functionality. price_generator.py,
 strategy.py, backtest.py, presets.py, and dashboard.py (build_chart_figure
-/ summary_groups) are all untouched and shared.
+/ summary_groups) implement the underlying simulation engine and chart
+rendering this GUI is a thin layer over.
 
 The whole window is the investing backtest -- no tabs, no bank simulation
 panel (that was for testing only; a fixed-deposit savings account is a
@@ -57,11 +57,10 @@ from saved_strategies import (load_saved_strategies, save_strategies_to_disk,
 
 class CustomStrategyDialog(tk.Toplevel):
     """
-    Modal dialog replicating cli.py's custom strategy builder: a
-    multiplier per market event, plus optional escalating-streak rules
-    for losing/gaining streaks. On OK, builds a Strategy and hands it back
-    to the caller via `on_done(strategy)`; on Cancel, calls
-    `on_cancel()` with nothing built.
+    Modal dialog for building a custom strategy: a multiplier per market
+    event, plus optional escalating-streak rules for losing/gaining
+    streaks. On OK, builds a Strategy and hands it back to the caller via
+    `on_done(strategy)`; on Cancel, calls `on_cancel()` with nothing built.
     """
 
     def __init__(self, parent, on_done, on_cancel):
@@ -561,7 +560,7 @@ class SimulatorApp:
         self._render_investing_results(result, strategy.name, strategy.description)
 
     def _on_quick_run(self) -> None:
-        """Mirrors cli.py's Quick Run: every standard default, new data, preset #1."""
+        """Every standard default, new data, preset #1."""
         _name, factory = presets.ALL_PRESETS["1"]
         strategy = factory()
         price_params = PriceGeneratorParams(start_price=100.0, years=50)

@@ -1,11 +1,12 @@
 """
 dashboard.py
 
-Renders the results dashboard: chart AND stats together in a single
-matplotlib window, side by side.
+Chart-drawing and stats-formatting utilities used by the desktop GUI
+(gui_tk.py). Builds matplotlib Figures for embedding in a Tkinter canvas
+and structures backtest stats for display in real widgets, rather than
+producing any output directly itself.
 """
 
-from typing import Optional
 import matplotlib.pyplot as plt
 from backtest import BacktestResult
 from interactive_chart import enable_pan_and_scroll_zoom
@@ -13,22 +14,16 @@ from interactive_chart import enable_pan_and_scroll_zoom
 
 def summary_groups(result: BacktestResult) -> list:
     """
-    A GUI-oriented view of the backtest stats, as grouped (label, value,
-    raw) triples instead of pre-padded monospace strings -- for UIs that
+    Backtest stats as grouped (label, value, raw) triples, for UIs that
     lay out real label/value widgets (e.g. ttk Labels in a grid) rather
-    than relying on monospace alignment, which is what made the old text
-    look like a terminal dump. Returns a list of (group_title,
+    than relying on monospace alignment. Returns a list of (group_title,
     [(label, value, raw), ...]) tuples, each group getting its own
     separator and header.
 
-    Deliberately narrower than summary_lines() (the CLI's version): "Runs
-    simulated" is omitted entirely here (redundant with the "Number of
-    runs" field already visible in the settings panel), and Avg
-    return is dropped entirely here (median return + median annualized
-    return cover the "typical outcome" story on their own), and the two
-    are combined into one "Return" group rather than a separate
-    "Annualized" section -- a GUI-specific presentation choice, not a
-    change to what the CLI shows.
+    "Runs simulated" is omitted entirely (redundant with the "Number of
+    runs" field already visible in the settings panel), and Avg return is
+    dropped (median return + median annualized return cover the "typical
+    outcome" story on their own).
 
     `raw` is the underlying signed numeric value (already in percent
     units, e.g. 5.0 for +5%, matching what's shown in the formatted
@@ -60,147 +55,6 @@ def summary_groups(result: BacktestResult) -> list:
             ("Median ending price", f"\u20ac{s['median_ending_price']:,.2f}", None),
         ]),
     ]
-
-
-def summary_lines(result: BacktestResult, strategy_name: str) -> list:
-    """Build the stats panel text as a list of lines (also reused for console echo)."""
-    s = result.summary()
-    return [
-        f"{strategy_name}",
-        "-" * 40,
-        f"Runs simulated:          {s['num_runs']}",
-        "",
-        f"Median return:           {s['median_return_pct']:.2f}%",
-        f"Avg return:              {s['avg_return_pct']:.2f}%",
-        f"Typical range (IQR):     {s['iqr_return_low_pct']:.1f}% to {s['iqr_return_high_pct']:.1f}%",
-        "",
-        f"Median annual return:    {s['median_annual_return_pct']:.2f}%",
-        "",
-        f"Median cash invested:    €{s['median_cash_invested']:,.0f}",
-        f"Median ending value:     €{s['median_ending_portfolio_value']:,.0f}",
-        "",
-        f"Starting price:          €{s['starting_price']:,.2f}",
-        f"Median ending price:     €{s['median_ending_price']:,.2f}",
-    ]
-
-
-def _find_local_extrema(prices: list, window: int) -> tuple:
-    """
-    A local peak/trough at month i is a point where prices[i] is the
-    max/min within a +/-window neighborhood -- the standard Bry-Boschan/
-    Pagan-Sossounov definition of a candidate turning point.
-    """
-    n = len(prices)
-    peaks, troughs = [], []
-    for i in range(n):
-        lo, hi = max(0, i - window), min(n, i + window + 1)
-        neighborhood = prices[lo:hi]
-        if prices[i] == max(neighborhood):
-            peaks.append(i)
-        if prices[i] == min(neighborhood):
-            troughs.append(i)
-    return peaks, troughs
-
-
-def _enforce_alternation(peaks: list, troughs: list, prices: list) -> list:
-    """
-    Merges peak/trough candidates into one strictly-alternating sequence.
-    When two candidates of the same type end up adjacent (a common result
-    of local-window extrema detection), keeps whichever is more extreme
-    and discards the other.
-    """
-    points = sorted([(i, "peak") for i in peaks] + [(i, "trough") for i in troughs])
-    cleaned = []
-    for idx, typ in points:
-        if cleaned and cleaned[-1][1] == typ:
-            prev_idx, _ = cleaned[-1]
-            if typ == "peak" and prices[idx] > prices[prev_idx]:
-                cleaned[-1] = (idx, typ)
-            elif typ == "trough" and prices[idx] < prices[prev_idx]:
-                cleaned[-1] = (idx, typ)
-            # else: discard idx, the existing point is already more extreme
-        else:
-            cleaned.append((idx, typ))
-    return cleaned
-
-
-def _censor_min_phase(turning_points: list, prices: list, min_phase_months: int) -> list:
-    """
-    Eliminates phases shorter than min_phase_months by removing the
-    offending interior turning point. IMPORTANT: removing an interior
-    point can create a NEW same-type collision between its former
-    neighbors (peak-trough-peak, with the trough removed, leaves two
-    adjacent peaks) -- this was a real bug caught during testing, fixed by
-    re-running _enforce_alternation after every single removal rather than
-    only checking phase length in isolation.
-    """
-    points = list(turning_points)
-    changed = True
-    while changed and len(points) > 2:
-        changed = False
-        for i in range(len(points) - 1):
-            if points[i + 1][0] - points[i][0] < min_phase_months:
-                if i == 0:
-                    del points[1]
-                elif i + 1 == len(points) - 1:
-                    del points[i]
-                else:
-                    del points[i + 1]
-                peaks = [idx for idx, t in points if t == "peak"]
-                troughs = [idx for idx, t in points if t == "trough"]
-                points = _enforce_alternation(peaks, troughs, prices)
-                changed = True
-                break
-    return points
-
-
-def find_sustained_trends_pagan_sossounov(prices: list, window: int = 8,
-                                           min_phase_months: int = 4) -> tuple:
-    """
-    EXPERIMENTAL alternative to _find_sustained_trends, based on the
-    Pagan & Sossounov (2003) bull/bear market dating method (itself a
-    refinement of the classic Bry-Boschan business-cycle dating
-    algorithm). Three stages: (1) find candidate turning points as local
-    extrema within a +/-window month neighborhood, (2) enforce strict
-    peak/trough alternation, (3) censor out any phase shorter than
-    min_phase_months by merging through it.
-
-    This is conceptually close to the zigzag approach already used in
-    _find_sustained_trends -- both are peak-trough dating algorithms with
-    a filter to avoid over-classifying noise. The difference is the
-    filter itself: zigzag requires a minimum % REVERSAL plus a minimum
-    ANNUALIZED RATE; Pagan-Sossounov requires a minimum window for a
-    point to count as a genuine extremum plus a minimum phase DURATION in
-    months, with no rate/magnitude requirement at all. NOTE: this
-    implementation deliberately omits the classic method's secondary
-    minimum-CYCLE-length censoring step (peak-to-peak or trough-to-trough)
-    -- phase-length censoring is the primary, most consequential rule;
-    omitted for scope, flagged here rather than silently skipped.
-
-    IMPORTANT: chart-only, exactly like _find_sustained_trends. No
-    connection to market_events.py or the Strategy engine.
-
-    Returns (decline_segments, rally_segments), each a list of
-    (month_index_start, month_index_end) tuples -- the same format as
-    _find_sustained_trends, so it's a drop-in comparable alternative.
-    """
-    n = len(prices)
-    if n < 2 * window + 1:
-        return [], []
-
-    peaks, troughs = _find_local_extrema(prices, window)
-    turning_points = _enforce_alternation(peaks, troughs, prices)
-    turning_points = _censor_min_phase(turning_points, prices, min_phase_months)
-
-    decline_segments, rally_segments = [], []
-    for j in range(len(turning_points) - 1):
-        idx0, typ0 = turning_points[j]
-        idx1, typ1 = turning_points[j + 1]
-        if typ0 == "peak" and typ1 == "trough":
-            decline_segments.append((idx0, idx1))
-        elif typ0 == "trough" and typ1 == "peak":
-            rally_segments.append((idx0, idx1))
-    return decline_segments, rally_segments
 
 
 def _find_sustained_trends(prices: list, reversal_threshold: float = 0.10,
@@ -329,20 +183,14 @@ def _find_sustained_trends(prices: list, reversal_threshold: float = 0.10,
     return decline_segments, rally_segments
 
 
-
 def _draw_chart(ax_chart, result: BacktestResult, strategy_name: str,
                  num_sample_runs: int = 5, dark_mode: bool = False,
                  y_scale: str = "linear") -> None:
     """
     Draw the price chart (individual runs + median + sustained trends) onto
-    an existing Axes. Shared by show_dashboard's combined CLI figure and
-    build_chart_figure's standalone GUI-embeddable figure, so both use
-    IDENTICAL, already-tested drawing logic -- no duplicated chart code
-    that could drift out of sync between the two.
+    an existing Axes.
 
-    dark_mode=False (default, used by the CLI) keeps the original colors
-    completely unchanged -- zero risk to the console output. dark_mode=True
-    (used by the GUI) pulls its palette from gui_theme.py, so the chart and
+    dark_mode=True pulls the palette from gui_theme.py, so the chart and
     the ttkbootstrap window chrome are guaranteed to match exactly.
 
     y_scale: "linear" (default) or "log". Matplotlib's log scale requires
@@ -379,7 +227,7 @@ def _draw_chart(ax_chart, result: BacktestResult, strategy_name: str,
     # intentionally NOT drawn on the chart at all (it's still shown as a
     # number in the stats panel) -- plotting it invites reading the chart
     # as "the average", which is exactly the skewed framing we're avoiding.
-    ax_chart.plot(years_axis, median_prices, color=median_color, linewidth=1.4,
+    ax_chart.plot(years_axis, median_prices, color=median_color, linewidth=1.8,
                    zorder=3, label="Median")
 
     # Highlight SUSTAINED trends (rallies/declines of any duration -- could
@@ -389,13 +237,13 @@ def _draw_chart(ax_chart, result: BacktestResult, strategy_name: str,
     for idx, (i0, i1) in enumerate(decline_segments):
         xs = [m / 12 for m in range(i0, i1 + 1)]
         ys = median_prices[i0:i1 + 1]
-        ax_chart.plot(xs, ys, color=decline_color, linewidth=1.4, zorder=4,
+        ax_chart.plot(xs, ys, color=decline_color, linewidth=1.8, zorder=4,
                        solid_capstyle="round",
                        label="Sustained decline" if idx == 0 else None)
     for idx, (i0, i1) in enumerate(rally_segments):
         xs = [m / 12 for m in range(i0, i1 + 1)]
         ys = median_prices[i0:i1 + 1]
-        ax_chart.plot(xs, ys, color=rally_color, linewidth=1.4, zorder=4,
+        ax_chart.plot(xs, ys, color=rally_color, linewidth=1.8, zorder=4,
                        solid_capstyle="round",
                        label="Sustained rally" if idx == 0 else None)
 
@@ -436,17 +284,17 @@ def _apply_dark_chart_styling(ax) -> None:
     legend) to match gui_theme.py's dark palette. Only touches styling,
     never data -- called after all data is plotted.
 
-    Uses the SAME background color as the rest of the window (CHART_BG,
-    not a separate lighter "card" shade) and removes the axes border
-    (spines) entirely, so the chart reads as integrated with the
-    settings/output panels rather than a distinct floating card.
+    Uses the SAME background color as the rest of the window (CHART_BG)
+    and removes the axes border (spines) entirely, so the chart reads as
+    integrated with the settings/output panels rather than a distinct
+    floating card.
     """
     import gui_theme
     fig = ax.figure
     fig.patch.set_facecolor(gui_theme.CHART_BG)
     ax.set_facecolor(gui_theme.CHART_BG)  # matches the figure bg exactly -- no visible seam
     for spine in ax.spines.values():
-        spine.set_visible(False)  # no border, as requested
+        spine.set_visible(False)  # no border
     ax.tick_params(colors=gui_theme.CHART_TEXT)
     ax.xaxis.label.set_color(gui_theme.CHART_TEXT)
     ax.yaxis.label.set_color(gui_theme.CHART_TEXT)
@@ -461,134 +309,32 @@ def _apply_dark_chart_styling(ax) -> None:
             text.set_color(gui_theme.CHART_TEXT)
 
 
-def _add_rounded_card_background(fig, ax, color: str, pad: float = 0.015) -> None:
-    """
-    Draws a rounded-rectangle "card" behind the Axes' plotted area, using
-    matplotlib's native FancyBboxPatch (well-supported, no hacks needed --
-    unlike trying to round a Tkinter widget's corners, which tkinter has
-    no support for at all). Must be called AFTER fig.tight_layout(), since
-    it reads the Axes' final on-figure position.
-
-    Uses fig.add_artist() (NOT fig.patches.append(), which was tried
-    first and produced a real, verified bug: it rendered the rectangle
-    ON TOP of the axes, completely hiding the plotted data -- confirmed
-    by actually rendering and looking at the output, not assumed).
-    add_artist() with an explicit negative zorder correctly places it
-    behind the axes instead.
-    """
-    from matplotlib.patches import FancyBboxPatch
-    bbox = ax.get_position()
-    rect = FancyBboxPatch(
-        (bbox.x0 - pad, bbox.y0 - pad),
-        bbox.width + 2 * pad, bbox.height + 2 * pad,
-        transform=fig.transFigure, figure=fig,
-        boxstyle="round,pad=0,rounding_size=0.02",
-        linewidth=0, facecolor=color, zorder=-10,
-    )
-    fig.add_artist(rect)
-
-
 def build_chart_figure(result: BacktestResult, strategy_name: str,
                         num_sample_runs: int = 5, figsize: tuple = (9.5, 6.0),
                         dark_mode: bool = False, y_scale: str = "linear"):
     """
-    Build a STANDALONE matplotlib Figure containing just the price chart
-    (no stats panel baked in, no suptitle) -- for embedding into another
-    UI's own window (e.g. a Tkinter canvas via FigureCanvasTkAgg), as
-    opposed to show_dashboard()'s all-in-one CLI popup window.
+    Build a standalone matplotlib Figure containing just the price chart,
+    for embedding in a Tkinter canvas via FigureCanvasTkAgg.
 
-    Use `summary_groups(result)` or `summary_lines(result, strategy_name)`
-    separately to get the stats for whatever native widget the embedding
-    UI wants to show them in -- don't bake stats into this figure, since
-    real widgets look sharper and are selectable/copyable, unlike text
-    rendered inside a matplotlib Axes.
+    Use `summary_groups(result)` separately to get the stats for whatever
+    native widget the GUI wants to show them in -- don't bake stats into
+    this figure, since real widgets look sharper and are selectable/
+    copyable, unlike text rendered inside a matplotlib Axes.
 
-    Pan/scroll-zoom is wired up regardless of backend, since
-    enable_pan_and_scroll_zoom only relies on the generic matplotlib
-    event system (fig.canvas.mpl_connect), not anything Tk/CLI-specific.
+    Pan/scroll-zoom is wired up via enable_pan_and_scroll_zoom, which only
+    relies on the generic matplotlib event system (fig.canvas.mpl_connect).
 
     dark_mode=True colors the chart to match gui_theme.py's palette (see
-    _apply_dark_chart_styling) -- no separate "card" background or border
-    is drawn, since the chart is meant to look uniform with the rest of
-    the window, not visually distinct from it.
+    _apply_dark_chart_styling).
 
     y_scale: "linear" (default) or "log" -- see _draw_chart's docstring
     for the log-scale positive-lower-bound handling.
 
-    Returns the Figure -- caller is responsible for embedding or
-    displaying it (this function never calls plt.show() or savefig()).
+    Returns the Figure -- caller is responsible for embedding it (this
+    function never calls plt.show() or savefig()).
     """
     fig, ax_chart = plt.subplots(figsize=figsize)
     _draw_chart(ax_chart, result, strategy_name, num_sample_runs, dark_mode=dark_mode, y_scale=y_scale)
     fig.tight_layout()
     enable_pan_and_scroll_zoom(fig, ax_chart)
     return fig
-
-
-def print_summary(result: BacktestResult, strategy_name: str) -> None:
-    """Echo the same stats to the console as well, for logging/copy-paste."""
-    print("\n" + "=" * 50)
-    for line in summary_lines(result, strategy_name):
-        print(line)
-    print("=" * 50 + "\n")
-
-
-def print_bank_summary(result) -> None:
-    """Print a formatted summary for a standalone bank balance simulation."""
-    print("\n" + "-" * 60)
-    print(" BANK BALANCE SIMULATION")
-    print("-" * 60)
-    print(f" Starting balance:   €{result.starting_balance:,.2f}")
-    print(f" Ending balance:     €{result.ending_balance:,.2f}")
-    print(f" Total deposited:    €{result.total_deposited:,.2f}")
-    print("-" * 60 + "\n")
-
-
-def show_dashboard(result: BacktestResult, strategy_name: str,
-                    save_path: Optional[str] = None, num_sample_runs: int = 5) -> None:
-    """
-    Render ONE window containing both the average-price chart and the
-    stats panel side by side, and echo the same stats to the console.
-
-    Args:
-        result: the BacktestResult to visualize.
-        strategy_name: display name of the strategy, used in titles.
-        save_path: if given, saves the combined dashboard to this path
-            instead of displaying it interactively.
-        num_sample_runs: how many individual runs to draw as thin light-gray
-            lines behind the average, so you can see the spread of outcomes
-            the average is smoothing over (not just the average itself).
-            Set to 0 to disable.
-    """
-    print_summary(result, strategy_name)
-
-    fig = plt.figure(figsize=(15.5, 6.5))
-    gs = fig.add_gridspec(1, 2, width_ratios=[2.0, 1.3])
-
-    # --- left panel: chart (shared drawing logic with build_chart_figure) ---
-    ax_chart = fig.add_subplot(gs[0])
-    _draw_chart(ax_chart, result, strategy_name, num_sample_runs)
-
-    # Click-and-drag to pan, scroll wheel to zoom -- no need to click a
-    # toolbar button first. Only meaningful for the interactive window;
-    # harmless (just unused) when saving straight to a file.
-    if not save_path:
-        enable_pan_and_scroll_zoom(fig, ax_chart)
-
-    # --- right panel: stats, rendered as plain monospaced text ---
-    ax_stats = fig.add_subplot(gs[1])
-    ax_stats.axis("off")
-    stats_text = "\n".join(summary_lines(result, strategy_name))
-    ax_stats.text(0.02, 0.98, stats_text, transform=ax_stats.transAxes,
-                  fontsize=10.5, va="top", ha="left", family="monospace")
-
-    fig.suptitle(f"Backtest Dashboard — {strategy_name}", fontsize=15, fontweight="bold")
-    fig.tight_layout(rect=(0, 0, 1, 0.94))
-
-    if save_path:
-        fig.savefig(save_path, dpi=150)
-        print(f"Dashboard saved to: {save_path}")
-    else:
-        plt.show()
-
-    plt.close(fig)

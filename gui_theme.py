@@ -58,7 +58,6 @@ OUTPUT_NEGATIVE = "#FAA0A0"
 # keep track of, and it visually ties the chart to the app's own palette)
 # rather than inventing yet another red/green pair.
 CHART_BG = BG_DARKEST
-CHART_CARD_BG = BG_CARD
 CHART_TEXT = TEXT_CREAM
 CHART_GRID = ACCENT_PRIMARY
 CHART_MEDIAN_LINE = ACCENT_MUTED

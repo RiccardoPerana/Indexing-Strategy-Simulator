@@ -6,48 +6,39 @@
 
 ![Indexing Strategy Simulator main window](screenshots/main-window.png)
 
-A backtesting tool for Dollar-Cost-Averaging style index investing 
-strategies. Define a strategy as a set of simple rules, for example: 
-"buy more during a crash", or "escalate contributions the longer a 
-downturn runs"), test it against randomly generated prices histories, 
-and see how it performs, either by itself, or compared to other strategies.
-Shipped as a desktop GUI.
+A backtesting tool for DCA-style (dollar-cost-averaging) index investing
+strategies. A strategy is defined as a set of rules ("buy more during a
+crash," "escalate contributions the longer a downturn runs"), tested
+against dozens of randomly generated 50-year price histories, and
+evaluated either on its own or against every other strategy at once.
 
-**A note on the data:** this deliberately does **not** backtest against
-historical market data. Prices are randomly generated (see
-[How prices are generated](#how-prices-are-generated)) so that a
-strategy's score reflects how it behaves across a genuine range of
-possible markets, not how well it happened to fit one specific history —
-testing "20% down, buy double" against the last 50 years of the S&P 500
-would make it look great, precisely because that's the exact history
-being fit to, not because the rule is actually sound. See
-[Known scope decisions](#known-scope-decisions) for the full reasoning.
+Prices are randomly generated rather than drawn from historical market
+data — a deliberate choice, not an oversight. See
+[Design philosophy](#design-philosophy) for the reasoning.
 
 ## Features
 
-- **Rule-based strategy engine** — every strategy is data (a list of
-  trigger → action rules), not custom code. 12 ready-made strategies
-  covering common approaches (dollar-cost averaging, crash buying,
-  momentum, drawdown-based accumulation, and more), plus a visual
-  strategy builder for your own.
-- **Realistic price simulation** — Geometric Brownian Motion with jump
-  diffusion is used to generate pricing data, rather than a single fixed
-  growth assumption. Each backtest run, by default samples its own market 
-  regime, so results reflect a genuine range of possible futures rather 
-  than one hardcoded scenario.
+- **Rule-based strategy engine** — every strategy is data, not custom
+  code: a list of trigger → action rules. Twelve built-in strategies
+  cover common approaches (dollar-cost averaging, crash buying,
+  momentum, drawdown-based accumulation, and others), and a visual
+  builder supports custom strategies.
+- **Randomized price simulation** — Geometric Brownian Motion with jump
+  diffusion. Each backtest run samples its own market regime rather than
+  assuming one fixed growth rate, so results reflect a genuine range of
+  possible futures. See [How prices are generated](#how-prices-are-generated).
 - **Median-first statistics** — return, annualized return, and ending
-  portfolio value are reported as medians, not averages, since average
-  outcomes for a compounding process are structurally skewed upward by
-  rare extreme runs (see [Why median, not average](#why-median-not-average)).
-- **Compare All** — run every strategy against identical market data in
-  one click and see them ranked side by side, with return, annualized
-  return, ending value, maximum drawdown, and gap-to-best-performer for
-  each.
+  value are reported as medians rather than averages. See
+  [Design philosophy](#design-philosophy) for why this matters.
+- **Compare All** — runs every strategy against identical market data
+  and ranks them side by side, with total return, annualized return,
+  capital efficiency, ending value, maximum drawdown, and gap to the
+  best performer for each.
 - **Interactive chart** — click-drag to pan, scroll to zoom, toggle
-  between linear and logarithmic price scales, and automatic highlighting
-  of sustained multi-year rallies and declines.
-- **Save custom strategies** for the current session, so you can build
-  several variations and compare them without re-entering rules each
+  between linear and logarithmic price scales, with automatic
+  highlighting of sustained multi-year rallies and declines.
+- **Custom strategies** can be saved for the current session, so several
+  variations can be built and compared without re-entering rules each
   time.
 
 ## Screenshots
@@ -69,8 +60,7 @@ Requires Python 3.9+.
 
 ```bash
 pip install -r requirements.txt
-python gui_tk.py      # desktop GUI
-python main.py        # console version
+python gui_tk.py
 ```
 
 ### Standalone Windows executable
@@ -85,12 +75,9 @@ build_exe.bat
 ```
 
 This runs on Windows only (see [Building a standalone executable](#building-a-standalone-executable)
-below for details and why), and will create a "build" folder inside of which the executable is located.
-While the script is compatible to run on both MacOS and Linux too.
+below for details and why).
 
 ## Usage
-
-### Desktop GUI
 
 Settings on the left, chart in the middle, results on the right.
 
@@ -109,7 +96,38 @@ Settings on the left, chart in the middle, results on the right.
 5. Toggle the chart between linear and logarithmic price scale with the
    button at the very bottom of the settings panel.
 
-## Why median, not average
+## Design philosophy
+
+Two decisions shape how results are generated and reported, and both
+follow from the same underlying goal: a strategy's evaluation should
+reflect how it behaves in general, not how it happened to perform on
+one specific sequence of events.
+
+### Synthetic data, not historical backtesting
+
+Prices are generated randomly rather than drawn from a real market's
+history. Testing a strategy against one specific historical sequence
+— the S&P 500's last 50 years, for example — invites the "past
+performance is not indicative of future results" problem directly: a
+strategy tuned to perform well on one historical path is demonstrably
+*fit to that path*, not demonstrably *sound*. A rule such as "buy double
+after a 20% decline" will look excellent when tested against a market
+that happened to recover from every one of its declines; that says
+nothing about how the rule would perform against a market that does not
+recover in the same way.
+
+The one assumption this project does rely on — that equities carry a
+positive long-run return expectation, generally exceeding that of bonds
+— is well-established enough to be built into the price model's drift
+calibration (see [How prices are generated](#how-prices-are-generated)).
+Everything else about a given run — the specific path, the timing of
+downturns, volatility clustering — is left to chance by design, so a
+strategy is evaluated against a genuine distribution of possible
+markets rather than a single historical anecdote. Sourcing clean,
+correctly licensed historical data was also a substantial undertaking in
+its own right, and secondary to the reasoning above.
+
+### Median, not average
 
 For any compounding growth process:
 
@@ -117,51 +135,75 @@ For any compounding growth process:
 mean(outcome) = median(outcome) × e^(½ · variance · time)
 ```
 
-This is a direct consequence of Jensen's inequality (the exponential
-function is convex) — that correction term is never negative, so
-**average return sits above median return structurally**, not as a
-quirk of any one run, and increasingly so over longer horizons and
-higher volatility. Losses are also capped at −100% while gains are
-unbounded, which pushes the same direction independently.
+This follows directly from Jensen's inequality (the exponential function
+is convex): that correction term is never negative, so average return
+sits above median return structurally, not as an artifact of any
+particular run, and increasingly so over longer horizons and higher
+volatility. Losses are capped at −100% while gains are unbounded, which
+pushes in the same direction independently.
 
-Median describes what a single investor living through *one* actual
-timeline should expect. Average describes a hypothetical pool of many
-parallel timelines averaged together — which in reality is impossible
-to experience. This project reports median as the headline number
-throughout, with average kept as a secondary skew signal.
+Median return describes the outcome a single investor living through
+one actual timeline should expect. Average return describes a
+hypothetical pool of many parallel timelines averaged together, which no
+individual investor experiences. This project reports median as the
+primary statistic throughout, with average retained as a secondary
+signal of how skewed a strategy's outcome distribution is.
 
-One subtlety: this logic can point the *opposite* direction once
-annualized — a handful of near-total-loss runs annualize toward −100%,
-which can pull *average annual* return *below* median (the reverse of
-what happens with total, non-annualized return). Neither direction is
-assumed; each statistic is computed and reported on its own terms.
+One qualification: this relationship can invert once annualized. A
+handful of near-total-loss runs annualize toward −100%, which can pull
+*average annual* return *below* median (the reverse of what happens with
+total, non-annualized return). Neither direction is assumed in advance —
+each statistic is computed independently and reported on its own terms.
 
 ## How prices are generated
 
-Prices use **Geometric Brownian Motion + Jump Diffusion** — a standard
-upgrade over plain GBM to add realistic sudden drops and spikes on
-top of everyday diffusion noise:
+Prices are generated using **Geometric Brownian Motion with jump
+diffusion** — a standard extension of plain GBM that adds sudden drops
+and spikes on top of ordinary month-to-month variation:
 
 - **Diffusion** — month-to-month variation drawn from a normal
   distribution.
 - **Jumps** — two independent rare-event processes: occasional sharp
   **crash** jumps (large, negative) and occasional sharp **bubble**
-  jumps (large, positive), asymmetric in both frequency and size (crashes
-  more common and larger, a realistic stylized fact).
+  jumps (large, positive), asymmetric in both frequency and size
+  (crashes more frequent and typically larger, consistent with observed
+  market behavior).
 
-No run uses one fixed expected return. Each simulation run samples its
-own annual drift and volatility once, at the start of that run, from
-ranges defined in `price_generator.py` — so a backtest's results reflect
-a genuine distribution of possible market conditions, not a single
-scripted outcome. The jump asymmetry is compensated for automatically,
-so a run sampled at "drift = 0%" actually averages to 0%, not to a
-value silently dragged down by the crash/bubble imbalance.
+No run uses a single fixed expected return. Each simulation run samples
+its own annual drift and volatility once, at the start of that run, from
+ranges defined in `price_generator.py`, so a backtest's results reflect
+a genuine distribution of possible market conditions rather than one
+scripted outcome. The jump asymmetry is compensated for automatically:
+a run sampled at 0% drift averages to 0% in practice, rather than being
+silently pulled down by the crash/bubble imbalance.
+
+## Market events
+
+Each month's return is classified into one of six named events, based
+on the percentage change from the previous month. These categories are
+what strategy triggers react to (see
+[How the strategy engine works](#how-the-strategy-engine-works) below).
+
+| Event | Monthly return |
+|---|---|
+| Crash | below −10% |
+| Extreme Loss | −10% to −6% |
+| Loss | −6% to 0% |
+| Gain | 0% to 6% |
+| Extreme Gain | 6% to 10% |
+| Bubble | above 10% |
+
+Gain and Loss are defined up to 6% rather than 5%, closing what would
+otherwise be an undefined 5%–6% band and ensuring every possible return
+maps to exactly one event with no gaps or overlaps — see
+`market_events.py` for the classification logic and the reasoning
+behind that specific boundary.
 
 ## How the strategy engine works
 
-Every strategy is data: a list of **rules**, where each rule is a
-**trigger** (when does this fire?) paired with an **action** (what
-happens to the buy amount?).
+Every strategy is data: a list of **rules**, where each rule pairs a
+**trigger** (the condition under which it fires) with an **action**
+(the resulting adjustment to that month's buy amount).
 
 ```python
 Rule(
@@ -171,37 +213,36 @@ Rule(
 ```
 
 All matching rules apply, in order, each transforming the running buy
-amount before the next rule sees it — so a per-event multiplier and a
-streak-escalation rule compose naturally rather than competing (a 1.5x
+amount before the next rule sees it. A per-event multiplier and a
+streak-escalation rule therefore compose rather than compete: a 1.5x
 loss multiplier combined with a +1x/month streak escalation, on a
-3-month streak, buys 1.5 × 3 = 4.5x the base amount). If nothing
-matches, the base buy (monthly contribution, unless overridden) is used
-unchanged.
+3-month streak, produces 1.5 × 3 = 4.5x the base amount. If no rule
+matches, the base buy (the monthly contribution, unless overridden) is
+used unchanged.
 
 **Trigger types:**
-- `"event"` — fires on a specific `MarketEvent` (Crash -10%, Extreme Loss -5%,
-  Loss -1%, Gain +1%, Extreme Gain +5%, Bubble +10%)
+- `"event"` — fires on a specific [market event](#market-events)
 - `"sequential_loss"` / `"sequential_gain"` — fires after N consecutive
-  losing/gaining months
-- `"return_threshold"` — fires when the return crosses a custom number,
-  for thresholds that don't line up with the six named events
+  losing or gaining months
+- `"return_threshold"` — fires when the return crosses a custom value,
+  for thresholds that fall outside the six named events
 - `"drawdown_from_peak"` — fires when price is a given fraction below
   the highest price reached so far in the simulation
 
 **Action types:**
-- `"multiply"` — scale the base buy (2.0 = double, 0.5 = half)
-- `"set_fixed"` — buy exactly this amount (`float('inf')` = as much as
+- `"multiply"` — scales the base buy (2.0 = double, 0.5 = half)
+- `"set_fixed"` — buys exactly this amount (`float('inf')` = as much as
   available cash allows)
-- `"add_fixed"` — add a flat amount to the base buy
-- `"skip"` — buy nothing this month
-- `"scale_with_streak"` — escalate a multiplier the longer a streak
+- `"add_fixed"` — adds a flat amount to the base buy
+- `"skip"` — buys nothing this month
+- `"scale_with_streak"` — escalates a multiplier the longer a streak
   runs, up to a cap
 
 ### Adding a new strategy
 
-No changes to the simulation engine needed — add a factory function to
-`presets.py` that returns a `Strategy` built from rules, and register it
-in `ALL_PRESETS`.
+No changes to the simulation engine are required. Add a factory function
+to `presets.py` that returns a `Strategy` built from rules, and register
+it in `ALL_PRESETS`.
 
 ## Project structure
 
@@ -214,13 +255,10 @@ in `ALL_PRESETS`.
 | `simulator.py` | Runs one strategy against one price history, month by month |
 | `backtest.py` | Runs N simulations, aggregates stats, and powers Compare All |
 | `saved_strategies.py` | Session-only persistence for custom strategies built via the GUI |
-| `dashboard.py` | Chart-drawing and stats formatting, shared by both front ends |
+| `dashboard.py` | Chart-drawing and stats formatting used by the GUI |
 | `interactive_chart.py` | Click-drag pan / scroll-wheel zoom for the chart |
 | `gui_theme.py` | Color palette and ttkbootstrap theme registration for the GUI |
-| `gui_tk.py` | The desktop GUI (Tkinter + ttk, themed with ttkbootstrap) |
-| `cli.py` | The console front end |
-| `main.py` | Console entry point (`python main.py`) |
-| `bank_simulator.py` | A standalone fixed-deposit savings calculator, used by the console version for testing |
+| `gui_tk.py` | The desktop GUI (Tkinter + ttk, themed with ttkbootstrap) — main entry point |
 
 ## Building a standalone executable
 
@@ -237,38 +275,27 @@ run the same script (renamed `build_exe.sh` with the equivalent
 ## Known scope decisions
 
 - **Selling is not implemented.** The project is scoped around wealth
-  *accumulation* strategies specifically, not trade timing in the buy/
-  sell sense — and a meaningful part of what a moving-average-triggered
+  *accumulation* strategies specifically, rather than trade timing in the
+  buy/sell sense. A meaningful part of what a moving-average-triggered
   approach would add is already covered by the drawdown-from-peak and
   streak-based triggers already in the rule engine (buying more after
-  sustained declines or gains). A literal sell action would be a bigger
-  scope expansion than a genuinely new analytical capability.
-  `Strategy.allow_selling` remains reserved to allow that change.
-- **No fees or expense ratios.** Real index funds have costs, and over a
-  50-year horizon they compound into a real effect worth modeling
-  eventually. Left out of this version deliberately: the settings screen
-  already asks for several numbers, and every additional parameter is a
-  small tax on how approachable the tool feels.
-- **No historical backtesting — prices are synthetic by design.** 
-  Sourcing clean, historical price data is a substantial project in its 
-  own right. More importantly: testing a strategy against one specific 
-  real data (e.g. the S&P 500's last 50 years) invites expectations on
-  future performance. The one assumption this project does lean on — that
-  equities carry a positive long-run return expectation, generally above
-  bonds — is well-established enough to bake into the price model's
-  drift calibration. Everything else (the specific path, when crashes
-  land, volatility clustering) is left random on purpose, so a strategy
-  has to hold up across a genuine distribution of possible markets
-  rather than one historical anecdote.
-- **Gain/Loss boundary:** treated as continuous, with Gain/Loss extending
-  up to the 6% mark where Extreme Gain/Loss begins — see
-  `market_events.py` if you'd rather define the boundary differently.
+  sustained declines or gains), so a literal sell action was judged a
+  larger scope expansion than a genuinely new analytical capability.
+  `Strategy.allow_selling` remains reserved for this.
+- **No fees or expense ratios.** Real index funds carry costs that
+  compound meaningfully over a 50-year horizon. Omitted deliberately in
+  this version: the settings screen already asks for several inputs, and
+  each additional parameter reduces how approachable the tool is. A
+  reasonable candidate for a future version, but not a prerequisite for
+  the core mechanics.
+- **No historical backtesting.** Prices are synthetic by design; see
+  [Design philosophy](#design-philosophy) for the full reasoning.
 - **Saved custom strategies are session-only**, deleted when the GUI
-  closes, by design — simpler than building a strategy management/delete
-  UI for a feature capped at 10 entries.
+  closes. This was simpler than building a management/delete interface
+  for a feature capped at 10 entries.
 
 ## License
 
 [MIT](LICENSE) — see the `LICENSE` file. Update the copyright holder name
 in that file before publishing if you'd like your name on it specifically
-rather than the generic placeholder.# Indexing Strategy Simulator
+rather than the generic placeholder.

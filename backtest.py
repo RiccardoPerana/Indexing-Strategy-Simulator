@@ -74,14 +74,6 @@ class BacktestResult:
                 self._values(lambda r: r.capital_efficiency_pct)) * 100,
         }
 
-    def average_price_by_month(self) -> List[float]:
-        """Average index price across all runs, for each month index."""
-        num_months = len(self.price_series_used[0])
-        return [
-            statistics.mean(series[m] for series in self.price_series_used)
-            for m in range(num_months)
-        ]
-
     def median_price_by_month(self) -> List[float]:
         """Median index price across all runs, for each month index.
 
