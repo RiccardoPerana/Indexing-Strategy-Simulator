@@ -73,6 +73,26 @@ def _compute_axis_drag_rescale(cur_lim, drag_pixels, axis_length_pixels, sensiti
     return (center - new_width / 2, center + new_width / 2)
 
 
+def _compute_annotation_offset(x_frac: float, y_frac: float, distance: float) -> tuple:
+    """
+    Pure function: given a point's fractional position within the axes'
+    plot area (0.0 = left/bottom edge, 1.0 = right/top edge, in PIXEL
+    space so this works correctly for a log-scale axis too, unlike a
+    naive linear interpolation of data values) and a desired offset
+    distance in points, return the (dx, dy) pixel offset to use for
+    ax.annotate()'s xytext.
+
+    Flips direction away from whichever edge the point is closer to, so
+    the annotation box stays on-screen instead of running off the edge
+    of the chart -- most noticeable on the RIGHT edge, which is also
+    where the most recent (often most-watched) data sits, since these
+    charts run left to right across time.
+    """
+    dx = -distance if x_frac > 0.5 else distance
+    dy = -distance if y_frac > 0.5 else distance
+    return dx, dy
+
+
 def _find_nearest_index(x_values: list, x_query: float) -> int:
     """
     Pure lookup, factored out so it can be unit-tested without a live GUI
@@ -95,11 +115,14 @@ def _find_nearest_index(x_values: list, x_query: float) -> int:
 def enable_hover_tooltip(fig: "matplotlib.figure.Figure", ax: "matplotlib.axes.Axes",
                           x_values: list, y_values: list,
                           x_label: str = "Year", y_format: str = "\u20ac{:,.2f}",
-                          bg_color: str = "white", text_color: str = "black") -> None:
+                          bg_color: str = "white", text_color: str = "black",
+                          distance: float = 18) -> None:
     """
-    Shows a small text tag in the corner of the axes reporting the
-    nearest data point's value as the mouse moves over the chart --
-    e.g. "Year 23.4  ->  \u20ac187.32", updating live.
+    Shows a small floating tag that follows the highlighted point on the
+    chart at a fixed pixel distance, with a marker dot placed exactly on
+    that point -- e.g. hovering near year 23 shows "Year 23.4  €187.32"
+    near a small circle sitting on the median line at that point, both
+    updating live as the mouse moves.
 
     x_values/y_values must be the same length and index-aligned (e.g. the
     chart's years-axis and its median price line) -- the tag reports
@@ -110,40 +133,74 @@ def enable_hover_tooltip(fig: "matplotlib.figure.Figure", ax: "matplotlib.axes.A
     headline number throughout this project rather than cluttering the
     tag with the individual sample runs too.
 
-    Positioned in a fixed corner rather than following the cursor's exact
-    pixel position -- simpler, and avoids needing special-case math for
-    where "the cursor's position" would even mean on a logarithmic y-axis.
+    The tag is offset from the point by a FIXED DISTANCE in points (not
+    data units), via matplotlib's own textcoords="offset points" -- this
+    keeps the offset a constant on-screen size regardless of zoom level
+    or whether the y-axis is linear or log. The offset DIRECTION flips
+    based on which half of the CURRENT VIEW (in pixel space, via
+    _compute_annotation_offset) the point sits in, so the tag always
+    points away from the nearest edge -- otherwise a tag offset in one
+    fixed direction gets clipped exactly when hovering near that edge,
+    which is the most likely place to hover (e.g. checking the final
+    year's value, right at the right edge of the chart).
 
     Hidden when the cursor leaves the axes, and suppressed while a
     button is held (event.button is not None during an active pan or
-    axis-drag gesture from enable_pan_and_scroll_zoom) so the tag doesn't
-    update mid-drag.
+    axis-drag gesture from enable_pan_and_scroll_zoom) so neither the
+    tag nor the marker update mid-drag.
     """
     if not x_values:
         return
 
-    annotation = ax.text(
-        0.98, 0.98, "", transform=ax.transAxes, fontsize=9,
-        va="top", ha="right", zorder=10,
+    marker, = ax.plot([], [], marker="o", markersize=7, color=bg_color,
+                       markeredgecolor=text_color, markeredgewidth=0.8,
+                       linestyle="none", zorder=6)
+    marker.set_visible(False)
+
+    annotation = ax.annotate(
+        "", xy=(0, 0), xytext=(distance, distance), textcoords="offset points",
+        fontsize=9, zorder=10,
         bbox=dict(boxstyle="round,pad=0.35", facecolor=bg_color, edgecolor=bg_color, alpha=0.85),
         color=text_color,
     )
     annotation.set_visible(False)
 
+    def hide_all():
+        if annotation.get_visible() or marker.get_visible():
+            annotation.set_visible(False)
+            marker.set_visible(False)
+            fig.canvas.draw_idle()
+
     def on_move(event):
         if event.inaxes != ax or event.xdata is None or event.button is not None:
-            if annotation.get_visible():
-                annotation.set_visible(False)
-                fig.canvas.draw_idle()
+            hide_all()
             return
+
         idx = _find_nearest_index(x_values, event.xdata)
-        annotation.set_text(f"{x_label} {x_values[idx]:.1f}   {y_format.format(y_values[idx])}")
+        x_point, y_point = x_values[idx], y_values[idx]
+
+        # Pixel-space position within the axes, so the edge-avoidance
+        # logic is correct regardless of linear/log y-scale.
+        px, py = ax.transData.transform((x_point, y_point))
+        bbox = ax.get_window_extent()
+        x_frac = (px - bbox.x0) / bbox.width
+        y_frac = (py - bbox.y0) / bbox.height
+        dx, dy = _compute_annotation_offset(x_frac, y_frac, distance)
+
+        annotation.xy = (x_point, y_point)
+        annotation.set_position((dx, dy))
+        annotation.set_ha("right" if dx < 0 else "left")
+        annotation.set_va("top" if dy < 0 else "bottom")
+        annotation.set_text(f"{x_label} {x_point:.1f}   {y_format.format(y_point)}")
         annotation.set_visible(True)
+
+        marker.set_data([x_point], [y_point])
+        marker.set_visible(True)
+
         fig.canvas.draw_idle()
 
     def on_leave(event):
-        annotation.set_visible(False)
-        fig.canvas.draw_idle()
+        hide_all()
 
     fig.canvas.mpl_connect("motion_notify_event", on_move)
     fig.canvas.mpl_connect("axes_leave_event", on_leave)
