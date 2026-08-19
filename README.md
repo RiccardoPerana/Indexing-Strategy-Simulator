@@ -41,7 +41,11 @@ for the reasoning.
   highlighting of sustained multi-year rallies and declines.
 - **Custom strategies** can be saved for the current session, so several
   variations can be built and compared without re-entering rules each
-  time.
+  time. Saved strategies join the dropdown and are included in
+  **Compare All** alongside the built-in presets. A saved strategy whose
+  name is already taken is numbered automatically (`Custom Strategy`,
+  `Custom Strategy (2)`, …), so every dropdown entry stays distinct and
+  selects the strategy it names.
 
 ## Screenshots
 
@@ -81,8 +85,10 @@ build_exe.bat
 Or double click the .bat file.
 This runs on Windows only (see [Building a standalone executable](#building-a-standalone-executable)
 below for details and why).
-This will create a /build folder, inside of which will sit an 
-standalone executable containing the program.
+This creates a `dist\` folder containing a single standalone
+`IndexingStrategySimulator.exe` — that one file is the whole
+application. (A `build\` folder appears alongside it holding
+PyInstaller's intermediate files; it can be ignored or deleted.)
 
 ## Usage
 
@@ -91,17 +97,36 @@ Settings on the left, chart in the middle, results on the right.
 1. Set the market parameters (starting price, years, number of
    simulation runs) and your investing parameters (starting capital,
    monthly contribution).
-2. Pick a strategy from the dropdown, or choose **Custom...** to build
+2. Choose a **Data source**. *Generate new data* draws a fresh set of
+   random price histories. *Reuse previous run's data* re-tests against
+   the exact price histories the last run used, so two strategies can be
+   compared on identical markets — see
+   [Reusing price data](#reusing-price-data) below.
+3. Pick a strategy from the dropdown, or choose **Custom...** to build
    your own from triggers and actions.
-3. **Run Backtest** to simulate your current settings, or **Quick Run**
+4. **Run Backtest** to simulate your current settings, or **Quick Run**
    to run preset #1 with all defaults instantly.
-4. **Compare All** runs every strategy — presets plus any custom
-   strategies you've built this session — against identical price data
-   and ranks them in a table. Toggle between the table and the
-   underlying market chart with the button that appears at the bottom
-   of the settings panel.
-5. Toggle the chart between linear and logarithmic price scale with the
+5. **Compare All** runs every strategy — presets plus any custom
+   strategies you've built or saved this session — against identical
+   price data and ranks them in a table. Toggle between the table and
+   the underlying market chart with the button that appears at the
+   bottom of the settings panel.
+6. Toggle the chart between linear and logarithmic price scale with the
    button at the very bottom of the settings panel.
+
+### Reusing price data
+
+Starting price, years, and number of runs are properties of the price
+*series*, fixed when it was generated. Selecting **Reuse previous run's
+data** therefore locks those three fields: they snap to the stored
+series' actual values and become read-only, greyed into the panel
+background, until *Generate new data* is selected again (at which point
+whatever you had typed before is restored).
+
+Starting savings, monthly contribution, and the chosen strategy stay
+editable throughout — those are applied by the simulator rather than the
+price generator, and varying them against fixed price data is the point
+of the feature.
 
 ## Design philosophy
 
@@ -205,6 +230,13 @@ otherwise be an undefined 5%–6% band and ensuring every possible return
 maps to exactly one event with no gaps or overlaps — see
 `market_events.py` for the classification logic and the reasoning
 behind that specific boundary.
+
+A return landing exactly **on** a threshold is assigned to the milder of
+the two adjacent categories, symmetrically in magnitude: exactly −10% is
+an Extreme Loss rather than a Crash, exactly +10% an Extreme Gain rather
+than a Bubble; exactly −6% is a Loss rather than an Extreme Loss, and
+exactly +6% a Gain rather than an Extreme Gain. The ranges in the table
+above are therefore inclusive at the end nearer zero.
 
 ## How the strategy engine works
 

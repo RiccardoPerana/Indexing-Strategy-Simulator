@@ -14,9 +14,18 @@ from strategy import Strategy, DepletingBaseBuy
 
 @dataclass
 class SimulationResult:
+    """
+    The full month-by-month history of one simulation run.
+
+    NOTE: this deliberately does NOT retain per-month buy amounts or
+    per-month shares purchased. Both were previously stored and never
+    read by any consumer (dashboard, backtest, or GUI), costing ~2x600
+    floats per run x N runs for nothing. If a "contribution history"
+    chart is ever added, reinstate them here and append to them inside
+    run_simulation's loop -- both values are already computed there, they
+    are simply discarded now rather than accumulated.
+    """
     prices: List[float]
-    monthly_buys: List[float]
-    monthly_shares_bought: List[float]
     portfolio_value_by_month: List[float]
     cash_invested_by_month: List[float]  # cumulative, index-aligned with prices
     ending_uninvested_cash: float = 0.0  # cash collected but never actually invested, still held at the end
@@ -189,8 +198,6 @@ def run_simulation(prices: List[float], strategy: Strategy,
     gain_streak = 0
     running_peak_price = prices[0]  # tracks the all-time high seen so far, for drawdown_from_peak triggers
 
-    monthly_buys: List[float] = []
-    monthly_shares_bought: List[float] = []
     portfolio_value_by_month: List[float] = [total_shares * prices[0]]  # month 0
     cash_invested_by_month: List[float] = [cumulative_invested]
 
@@ -235,15 +242,11 @@ def run_simulation(prices: List[float], strategy: Strategy,
         total_shares += shares_bought
         cumulative_invested += actual_buy
 
-        monthly_buys.append(actual_buy)
-        monthly_shares_bought.append(shares_bought)
         portfolio_value_by_month.append(total_shares * curr_price)
         cash_invested_by_month.append(cumulative_invested)
 
     return SimulationResult(
         prices=prices,
-        monthly_buys=monthly_buys,
-        monthly_shares_bought=monthly_shares_bought,
         portfolio_value_by_month=portfolio_value_by_month,
         cash_invested_by_month=cash_invested_by_month,
         ending_uninvested_cash=available_cash,

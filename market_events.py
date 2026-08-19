@@ -8,9 +8,20 @@ Event thresholds (based on the previous month's percentage change):
     Crash        : return < -10%
     Extreme Loss : -10% <= return < -6%
     Loss         : -6% <= return < 0%
-    Gain         : 0% <= return < 6%
-    Extreme Gain : 6% <= return <= 10%
+    Gain         : 0% <= return <= 6%
+    Extreme Gain : 6% < return <= 10%
     Bubble       : return > 10%
+
+BOUNDARY CONVENTION: a return landing exactly ON a threshold is assigned
+to the MILDER of the two adjacent buckets, symmetrically in magnitude --
+exactly -10% is an Extreme Loss (not a Crash) and exactly +10% is an
+Extreme Gain (not a Bubble); exactly -6% is a Loss (not an Extreme Loss)
+and exactly +6% is a Gain (not an Extreme Gain). classify_event's
+comparison operators below implement this consistently. Two of the lines
+above previously described the +6% boundary the other way round (Gain as
+`< 6%`, Extreme Gain as `>= 6%`), which did not match the code; the code
+was correct and the docstring has been corrected to match it, rather
+than the reverse.
 
 NOTE ON ASSUMPTION: the brief specifies "Gain: 0 to +5%" and "Extreme Gain:
 6 to 10%" (and symmetrically for losses), which leaves the 5%-6% band

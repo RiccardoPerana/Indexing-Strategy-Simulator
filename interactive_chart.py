@@ -5,10 +5,74 @@ Adds "click-and-drag to pan, scroll wheel to zoom" behavior directly on a
 matplotlib Axes -- no need to click a toolbar button first, unlike
 matplotlib's default Pan/Zoom tools. This is what people generally expect
 from an interactive chart (Google Maps-style navigation).
+
+Every viewport calculation here is scale-aware: it runs in the axis's
+LINEARIZED space, so pan/zoom/axis-drag behave identically and correctly
+whether the chart is on a linear or a logarithmic y-scale (the GUI lets
+the user toggle between the two at any time). See _axis_transforms.
 """
 
+import math
+
+# Imported for the "matplotlib.figure.Figure" / "matplotlib.axes.Axes"
+# annotations on enable_hover_tooltip and enable_pan_and_scroll_zoom
+# below. Those annotations are STRING literals, so Python itself never
+# evaluates them and the module runs fine without these imports -- but a
+# type checker does resolve them, and reports "matplotlib is not
+# defined" if they're absent. Not unused: keep them.
 import matplotlib.figure
 import matplotlib.axes
+
+
+def _axis_transforms(scale: str) -> tuple:
+    """
+    Returns (forward, inverse): functions mapping between DATA space and
+    the axis's LINEARIZED space -- the space in which screen pixels are
+    evenly spaced. Identity for a linear axis; log10 / 10**x for a log
+    axis.
+
+    WHY EVERY VIEWPORT CALCULATION MUST GO THROUGH THIS: on a log axis,
+    a pixel is a constant step in log10(value), NOT in value. Doing pan
+    and zoom arithmetic directly on data-space limits therefore produces
+    two visible bugs: the gesture speeds up or slows down depending on
+    where you are on the axis, and -- much worse -- panning downward can
+    drive the lower limit to zero or negative, which is unrepresentable
+    on a log scale. Matplotlib then warns and silently clamps the view.
+    That second failure directly undoes the positive-lower-bound
+    guarantee dashboard._draw_chart goes out of its way to establish for
+    log mode.
+
+    The forward transform floors its input at a tiny positive number
+    rather than raising on a non-positive value. Matplotlib should never
+    hand us a non-positive limit on a log axis, but a domain error
+    raised inside a mouse-motion callback would be swallowed by the
+    event loop and leave the chart mysteriously frozen -- clamping fails
+    visibly and harmlessly instead.
+    """
+    if scale == "log":
+        return (lambda v: math.log10(max(v, 1e-12))), (lambda v: 10.0 ** v)
+    return (lambda v: v), (lambda v: v)
+
+
+def _shift_limits(cur_lim, pixel_delta: float, axis_length_pixels: float,
+                   scale: str = "linear") -> tuple:
+    """
+    Pure function: pan ONE axis by a pixel delta, correctly for a linear
+    OR a log scale.
+
+    Works by converting the pixel delta into a fraction of the axis's
+    currently visible length, applying that fraction in LINEARIZED space
+    (see _axis_transforms), then converting back. Because the shift is
+    computed as a fraction of the CURRENT view rather than accumulated
+    from where the drag started, this stays drift-free as the view moves
+    underneath the cursor.
+    """
+    if axis_length_pixels == 0:
+        return tuple(cur_lim)
+    fwd, inv = _axis_transforms(scale)
+    lo, hi = fwd(cur_lim[0]), fwd(cur_lim[1])
+    delta = (pixel_delta / axis_length_pixels) * (hi - lo)
+    return inv(lo - delta), inv(hi - delta)
 
 
 def _compute_zoomed_limits(cur_xlim, cur_ylim, xdata, ydata, scale_factor):
@@ -17,6 +81,12 @@ def _compute_zoomed_limits(cur_xlim, cur_ylim, xdata, ydata, scale_factor):
     needing a live GUI event loop. Keeps the point (xdata, ydata) fixed in
     place while scaling the view by `scale_factor` (>1 = zoom out, <1 =
     zoom in).
+
+    SCALE-AGNOSTIC BY CONTRACT: this does plain linear arithmetic and
+    knows nothing about log axes. Callers are responsible for passing
+    limits and the anchor point ALREADY in linearized space (via
+    _axis_transforms) and for converting the result back. Keeping the
+    transform out here leaves this a trivially testable pure function.
     """
     new_width = (cur_xlim[1] - cur_xlim[0]) * scale_factor
     new_height = (cur_ylim[1] - cur_ylim[0]) * scale_factor
@@ -50,27 +120,43 @@ def _get_axis_region(ax, x_px, y_px, margin=35):
     return None
 
 
-def _compute_axis_drag_rescale(cur_lim, drag_pixels, axis_length_pixels, sensitivity=2.5):
+def _compute_axis_drag_rescale(cur_lim, drag_pixels, axis_length_pixels,
+                                sensitivity=2.5, scale: str = "linear"):
     """
-    Pure function: given one axis's current (lo, hi) limits, how many
-    pixels the user has dragged along that axis since the last frame, and
-    the axis's on-screen length in pixels, return the new (lo, hi) limits.
+    Pure function: given one axis's current (lo, hi) limits in DATA space,
+    how many pixels the user has dragged along that axis since the last
+    frame, and the axis's on-screen length in pixels, return the new
+    (lo, hi) limits in data space.
 
-    Convention: dragging toward larger screen-pixel values (right for the
-    x-axis, down for the y-axis) narrows the range -- increases the space
-    between units, i.e. zooms in on that axis. Dragging the other way
-    widens it. Rescaling is anchored to the CENTER of the current view,
-    not the cursor position -- unlike scroll-wheel zoom (which anchors to
-    the cursor), axis-drag rescaling conventionally keeps the view
-    centered while stretching/compressing it.
+    Convention: dragging toward LARGER matplotlib pixel values narrows the
+    range -- increases the space between units, i.e. zooms in on that
+    axis. Dragging the other way widens it. Note that matplotlib's pixel
+    origin is BOTTOM-left, so "larger pixel value" means dragging RIGHT
+    on the x-axis and dragging UP on the y-axis. (A previous version of
+    this docstring said "down" for the y-axis, contradicting both the
+    code here and the caller's own comment -- the code was and remains
+    correct; the docstring was wrong.)
+
+    Rescaling is anchored to the CENTER of the current view, not the
+    cursor position -- unlike scroll-wheel zoom (which anchors to the
+    cursor), axis-drag rescaling conventionally keeps the view centered
+    while stretching/compressing it.
+
+    `scale` is the axis's matplotlib scale ("linear" or "log"). All the
+    arithmetic below happens in linearized space so that a log y-axis
+    rescales evenly and can never be driven to a non-positive lower
+    bound -- see _axis_transforms.
     """
-    lo, hi = cur_lim
+    if axis_length_pixels == 0:
+        return tuple(cur_lim)
+    fwd, inv = _axis_transforms(scale)
+    lo, hi = fwd(cur_lim[0]), fwd(cur_lim[1])
     width = hi - lo
     center = (lo + hi) / 2
     frac = (drag_pixels / axis_length_pixels) * sensitivity
     scale_factor = max(0.05, 1 - frac)  # floor prevents inverting/collapsing the range
     new_width = width * scale_factor
-    return (center - new_width / 2, center + new_width / 2)
+    return (inv(center - new_width / 2), inv(center + new_width / 2))
 
 
 def _compute_annotation_offset(x_frac: float, y_frac: float, distance: float) -> tuple:
@@ -232,10 +318,22 @@ def enable_pan_and_scroll_zoom(fig: "matplotlib.figure.Figure",
             return
         # scroll up ("up") = zoom in, scroll down ("down") = zoom out
         scale_factor = (1 / zoom_scale) if event.button == "up" else zoom_scale
+
+        # Convert both axes into linearized space, zoom there, convert
+        # back. The x-axis is always linear on these charts (years), but
+        # it's read from the Axes rather than assumed -- one code path
+        # that stays correct if that ever changes.
+        x_fwd, x_inv = _axis_transforms(ax.get_xscale())
+        y_fwd, y_inv = _axis_transforms(ax.get_yscale())
+
+        cur_xlim = (x_fwd(ax.get_xlim()[0]), x_fwd(ax.get_xlim()[1]))
+        cur_ylim = (y_fwd(ax.get_ylim()[0]), y_fwd(ax.get_ylim()[1]))
+
         new_xlim, new_ylim = _compute_zoomed_limits(
-            ax.get_xlim(), ax.get_ylim(), event.xdata, event.ydata, scale_factor)
-        ax.set_xlim(new_xlim)
-        ax.set_ylim(new_ylim)
+            cur_xlim, cur_ylim, x_fwd(event.xdata), y_fwd(event.ydata), scale_factor)
+
+        ax.set_xlim(x_inv(new_xlim[0]), x_inv(new_xlim[1]))
+        ax.set_ylim(y_inv(new_ylim[0]), y_inv(new_ylim[1]))
         fig.canvas.draw_idle()
 
     def on_press(event):
@@ -259,27 +357,32 @@ def enable_pan_and_scroll_zoom(fig: "matplotlib.figure.Figure",
             return
 
         if state["mode"] == "pan":
-            # Convert the pixel-space mouse movement into data-space
-            # movement using the axes' CURRENT transform, then shift the
-            # CURRENT limits by that amount. Recomputing from current
-            # state every frame (as opposed to diffing against the
-            # position where the drag started) avoids any drift/runaway
+            # Shift each axis by the drag delta expressed as a fraction of
+            # that axis's currently visible span, computed in LINEARIZED
+            # space (see _shift_limits / _axis_transforms). Recomputing
+            # from the current limits every frame -- rather than diffing
+            # against where the drag started -- avoids drift/runaway
             # panning as the view itself moves.
-            inv = ax.transData.inverted()
-            x0_data, y0_data = inv.transform((0, 0))
-            x1_data, y1_data = inv.transform((event.x - state["last_x"], event.y - state["last_y"]))
-            dx = x1_data - x0_data
-            dy = y1_data - y0_data
-
-            cur_xlim = ax.get_xlim()
-            cur_ylim = ax.get_ylim()
-            ax.set_xlim(cur_xlim[0] - dx, cur_xlim[1] - dx)
-            ax.set_ylim(cur_ylim[0] - dy, cur_ylim[1] - dy)
+            #
+            # This replaces an earlier implementation that inverted
+            # ax.transData to get a data-space delta and subtracted it
+            # from the limits directly. That is correct on a linear axis
+            # but wrong on a log one: a constant data-space delta is not
+            # a constant pixel distance there, so panning felt uneven
+            # and, dragging downward far enough, pushed the lower limit
+            # to <= 0 -- unrepresentable on a log scale, which matplotlib
+            # answers with a warning and a silently clamped view.
+            bbox = ax.get_window_extent()
+            ax.set_xlim(_shift_limits(ax.get_xlim(), event.x - state["last_x"],
+                                       bbox.width, ax.get_xscale()))
+            ax.set_ylim(_shift_limits(ax.get_ylim(), event.y - state["last_y"],
+                                       bbox.height, ax.get_yscale()))
 
         elif state["mode"] == "axis_x":
             bbox = ax.get_window_extent()
             drag_px = event.x - state["last_x"]
-            new_xlim = _compute_axis_drag_rescale(ax.get_xlim(), drag_px, bbox.width)
+            new_xlim = _compute_axis_drag_rescale(ax.get_xlim(), drag_px, bbox.width,
+                                                   scale=ax.get_xscale())
             ax.set_xlim(new_xlim)
 
         elif state["mode"] == "axis_y":
@@ -290,9 +393,12 @@ def enable_pan_and_scroll_zoom(fig: "matplotlib.figure.Figure",
             # not assumed): a positive pixel delta (dragging up) narrows
             # the range and zooms in; dragging down widens it. This makes
             # "drag toward increasing axis value" the consistent zoom-in
-            # gesture for both axes.
+            # gesture for both axes. (_compute_axis_drag_rescale's
+            # docstring previously described the opposite direction for
+            # the y-axis; the docstring has been corrected to match this.)
             drag_px = event.y - state["last_y"]
-            new_ylim = _compute_axis_drag_rescale(ax.get_ylim(), drag_px, bbox.height)
+            new_ylim = _compute_axis_drag_rescale(ax.get_ylim(), drag_px, bbox.height,
+                                                   scale=ax.get_yscale())
             ax.set_ylim(new_ylim)
 
         state["last_x"] = event.x

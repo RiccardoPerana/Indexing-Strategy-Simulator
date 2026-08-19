@@ -242,6 +242,11 @@ class SimulatorApp:
         self.current_fig = None          # tracks the live matplotlib Figure so we can plt.close() it on refresh
         self._last_single_result = None  # (result, name, description) of the last single-strategy run, for restoring after Compare All
         self.chart_scale = "linear"      # toggled by the log/linear button, bottom of settings
+        # Price-settings lock state (see the _lock_price_settings block).
+        # _unlocked_price_settings holds the user's own typed values while
+        # the lock is showing the reused series' values instead.
+        self.price_settings_locked = False
+        self._unlocked_price_settings = None
         # Loaded once at startup; a corrupted/missing save file returns []
         # rather than crashing (see saved_strategies.load_saved_strategies).
         self.saved_strategies = load_saved_strategies()
@@ -329,19 +334,41 @@ class SimulatorApp:
         # source); "Investing" covers the money side (savings, income,
         # strategy) -- a cleaner split than the original 5 narrow groups.
         panel_title("Settings")
+        # These three entries are kept as attributes because they get
+        # locked/unlocked as a group by _lock_price_settings /
+        # _unlock_price_settings -- they define the PRICE DATA, which is
+        # fixed and un-overridable when reusing a previous run's series.
+        #
+        # font is set DIRECTLY on the widget here, exactly as on the
+        # Starting savings / Monthly income entries below, so all five
+        # settings fields render identically. An earlier attempt baked
+        # the font into per-state style definitions instead
+        # ("Editable.TEntry" / "Locked.TEntry") and swapped styles to
+        # lock them -- but a ttk Entry does not reliably pick up -font
+        # from its style the way a Button does, so those three silently
+        # fell back to the default (smaller) font. Locking is now done
+        # purely via the widget's `state`, with the locked appearance
+        # supplied by a readonly-state map on the shared TEntry style in
+        # main() -- no style swapping, so nothing can disturb the font.
         ttk.Label(settings, text="Start price (€)", font=("", 14)).grid(row=row, column=0, **pad)
         self.start_price_var = tk.StringVar(value="100")
-        ttk.Entry(settings, textvariable=self.start_price_var, width=12, font=("", 14)).grid(row=row, column=1, sticky="ew")
+        self.start_price_entry = ttk.Entry(settings, textvariable=self.start_price_var,
+                                            width=12, font=("", 14))
+        self.start_price_entry.grid(row=row, column=1, sticky="ew")
         row += 1
 
         ttk.Label(settings, text="Years", font=("", 14)).grid(row=row, column=0, **pad)
         self.years_var = tk.StringVar(value="50")
-        ttk.Entry(settings, textvariable=self.years_var, width=12, font=("", 14)).grid(row=row, column=1, sticky="ew")
+        self.years_entry = ttk.Entry(settings, textvariable=self.years_var,
+                                      width=12, font=("", 14))
+        self.years_entry.grid(row=row, column=1, sticky="ew")
         row += 1
 
         ttk.Label(settings, text="Number of runs", font=("", 14)).grid(row=row, column=0, **pad)
         self.num_runs_var = tk.StringVar(value="50")
-        ttk.Entry(settings, textvariable=self.num_runs_var, width=12, font=("", 14)).grid(row=row, column=1, sticky="ew")
+        self.num_runs_entry = ttk.Entry(settings, textvariable=self.num_runs_var,
+                                         width=12, font=("", 14))
+        self.num_runs_entry.grid(row=row, column=1, sticky="ew")
         row += 1
 
         ttk.Label(settings, text="Data source", font=("", 14)).grid(row=row, column=0, columnspan=2, sticky="w", pady=(6, 0))
@@ -353,9 +380,11 @@ class SimulatorApp:
         # this sidesteps the sizing question entirely and matches the
         # Strategy dropdown's existing style below.
         self.data_source_var = tk.StringVar(value=self.DATA_SOURCE_NEW)
-        ttk.Combobox(settings, textvariable=self.data_source_var,
-                     values=[self.DATA_SOURCE_NEW, self.DATA_SOURCE_REUSE],
-                     state="readonly", width=30, font=("", 14)).grid(row=row, column=0, columnspan=2, sticky="ew")
+        self.data_source_combo = ttk.Combobox(settings, textvariable=self.data_source_var,
+                                               values=[self.DATA_SOURCE_NEW, self.DATA_SOURCE_REUSE],
+                                               state="readonly", width=30, font=("", 14))
+        self.data_source_combo.grid(row=row, column=0, columnspan=2, sticky="ew")
+        self.data_source_combo.bind("<<ComboboxSelected>>", self._on_data_source_selected)
         row += 1
 
         separator()
@@ -467,9 +496,38 @@ class SimulatorApp:
             CustomStrategyDialog(self.root, on_done=self._on_custom_strategy_done,
                                   on_cancel=self._on_custom_strategy_cancelled)
 
+    def _unique_strategy_name(self, base: str) -> str:
+        """
+        Returns `base`, or `base (2)` / `base (3)` / ... if that name is
+        already taken by a preset, an already-saved strategy, or the
+        "Custom..." label itself.
+
+        WHY THIS IS NEEDED: a name collision makes a saved strategy
+        UNREACHABLE, because _get_selected_strategy matches on name and
+        scans presets before saved strategies -- so a duplicate entry in
+        the dropdown would silently run something else.
+
+        WHY IT DISAMBIGUATES RATHER THAN REJECTS: CustomStrategyDialog
+        seeds its name field with "Custom Strategy" every single time it
+        opens, so a user saving several variations without renaming each
+        one hits a collision on the SECOND save and every save after it.
+        Refusing those saves capped the feature at a single saved
+        strategy -- the exact opposite of the "save up to 10 variations
+        and compare them" behaviour it exists to provide. Renaming keeps
+        every save working while still guaranteeing each dropdown entry
+        resolves to the strategy it names.
+        """
+        taken = set(self.PRESET_NAMES) | {s.name for s in self.saved_strategies}
+        taken.add(self.CUSTOM_LABEL)
+        if base not in taken:
+            return base
+        suffix = 2
+        while f"{base} ({suffix})" in taken:
+            suffix += 1
+        return f"{base} ({suffix})"
+
     def _on_custom_strategy_done(self, strategy: Strategy, save: bool = False) -> None:
         self.custom_strategy = strategy
-        self.custom_strategy_status.config(text=f"\u2713 '{strategy.name}' ({len(strategy.rules)} rule(s) set)")
 
         if save:
             if len(self.saved_strategies) >= MAX_SAVED_STRATEGIES:
@@ -478,19 +536,165 @@ class SimulatorApp:
                             f"limit has been reached. This strategy is still usable for this session "
                             f"via 'Custom...', just not saved to the dropdown.",
                     title="Save limit reached")
+                self._set_custom_strategy_status(strategy)
                 return
+
+            # Renamed BEFORE being appended, so the name shown in the
+            # dropdown, the name reported in the results panel, and the
+            # name stored on disk are all the same string.
+            strategy.name = self._unique_strategy_name(strategy.name)
+
             self.saved_strategies.append(strategy)
-            save_strategies_to_disk(self.saved_strategies)
+            try:
+                save_strategies_to_disk(self.saved_strategies)
+            except Exception as exc:
+                # This runs inside a Tk callback, where an unhandled
+                # exception is printed to stderr and swallowed -- and
+                # stderr goes nowhere at all in the PyInstaller
+                # --windowed build, so the user would see the dialog
+                # close with nothing saved and no explanation. A
+                # read-only install directory is a realistic trigger.
+                self.saved_strategies.remove(strategy)
+                Messagebox.show_error(
+                    message=f"Could not write the saved-strategies file:\n{exc}\n\n"
+                            f"The strategy is still usable for this session via 'Custom...'.",
+                    title="Save failed")
+                self._set_custom_strategy_status(strategy)
+                return
             self.strategy_combo.configure(values=self._build_strategy_dropdown_values())
             # Select the newly-saved strategy directly, rather than leaving
             # the dropdown on "Custom..." now that it has its own entry.
             self.strategy_var.set(strategy.name)
+
+        self._set_custom_strategy_status(strategy)
+
+    def _set_custom_strategy_status(self, strategy: Strategy) -> None:
+        """
+        Updates the small confirmation line under the Strategy dropdown.
+
+        Called AFTER any renaming done by _unique_strategy_name, so the
+        name it reports is the name the strategy actually ended up with
+        rather than the one typed into the dialog.
+        """
+        self.custom_strategy_status.config(
+            text=f"\u2713 '{strategy.name}' ({len(strategy.rules)} rule(s) set)")
 
     def _on_custom_strategy_cancelled(self) -> None:
         # if no custom strategy was ever successfully built, fall back to the first preset
         # rather than leaving the dropdown pointed at an unconfigured "Custom..."
         if self.custom_strategy is None:
             self.strategy_var.set(self.PRESET_NAMES[0])
+
+    # ---------------------------------------------------------------
+    # Price-settings lock (Data source = "Reuse previous run's data")
+    # ---------------------------------------------------------------
+    #
+    # Start price, Years, and Number of runs are properties of the PRICE
+    # SERIES, not of an individual run: reusing a stored series means
+    # run_backtest takes its `reuse_prices` path and skips price
+    # generation entirely, so those three inputs cannot be honoured.
+    #
+    # Rather than letting the user type values that are silently
+    # discarded (and then telling them so in a dialog after the fact),
+    # selecting "Reuse previous run's data" snaps the three fields to the
+    # stored series' actual values and makes them non-editable, with a
+    # background matching the window so they visibly read as inert. They
+    # become editable again -- restored to whatever the user had typed
+    # before the lock -- on switching back to "Generate new data".
+    #
+    # Starting savings, monthly income, and the strategy stay editable
+    # throughout: those are consumed by the simulator, not the price
+    # generator, and re-testing them against fixed price data is the
+    # entire point of the reuse feature.
+
+    def _locked_entries(self) -> tuple:
+        return (self.start_price_entry, self.years_entry, self.num_runs_entry)
+
+    def _price_settings_from_previous(self) -> dict:
+        """The three price-defining values, read back off the stored series."""
+        series = self.previous_prices
+        return {
+            # :g so a start price of 100.0 displays as "100", matching how
+            # the user would have typed it, not "100.0".
+            "start_price": f"{series[0][0]:g}",
+            "years": str((len(series[0]) - 1) // 12),
+            "num_runs": str(len(series)),
+        }
+
+    def _on_data_source_selected(self, _event=None) -> None:
+        if self.data_source_var.get() == self.DATA_SOURCE_REUSE:
+            if self.previous_prices is None:
+                # Nothing to lock the fields TO yet, so this selection
+                # can't be honoured -- revert it rather than leaving the
+                # dropdown showing a mode the app isn't actually in.
+                Messagebox.show_error(
+                    message="No previous run to reuse yet -- run once with 'Generate new data' first.",
+                    title="No previous data")
+                self.data_source_var.set(self.DATA_SOURCE_NEW)
+                return
+            self._lock_price_settings()
+        else:
+            self._unlock_price_settings()
+
+    def _lock_price_settings(self) -> None:
+        if self.price_settings_locked:
+            return
+        self.price_settings_locked = True
+
+        # Stash what the user had typed so switching back to "Generate
+        # new data" restores their own values rather than leaving the
+        # reused series' values behind as if they'd chosen them.
+        self._unlocked_price_settings = {
+            "start_price": self.start_price_var.get(),
+            "years": self.years_var.get(),
+            "num_runs": self.num_runs_var.get(),
+        }
+        self._sync_locked_price_settings()
+
+        for entry in self._locked_entries():
+            # state="readonly" (not "disabled") keeps the text selectable
+            # and copyable while blocking edits. The locked APPEARANCE
+            # comes from the readonly-state map on the shared TEntry
+            # style (see main()), not from swapping the widget's style --
+            # so the widget's own font is never touched and these fields
+            # stay the same size as every other settings entry.
+            entry.configure(state="readonly")
+
+    def _unlock_price_settings(self) -> None:
+        if not self.price_settings_locked:
+            return
+        self.price_settings_locked = False
+
+        stashed = self._unlocked_price_settings or {}
+        if stashed:
+            self.start_price_var.set(stashed["start_price"])
+            self.years_var.set(stashed["years"])
+            self.num_runs_var.set(stashed["num_runs"])
+        self._unlocked_price_settings = None
+
+        for entry in self._locked_entries():
+            entry.configure(state="normal")
+
+    def _sync_locked_price_settings(self) -> None:
+        """
+        Push the stored series' values into the three locked fields.
+
+        Called both when the lock is first applied and after ANY run that
+        replaces self.previous_prices while the lock is active (Quick Run
+        and Compare All both generate their own data and can therefore
+        change the series out from under a locked display). Without this,
+        the fields would keep showing the values of a series that is no
+        longer the one "reuse" would actually use.
+
+        Writing to a StringVar bypasses the widget's readonly state, so
+        no temporary state juggling is needed here.
+        """
+        if not self.price_settings_locked or self.previous_prices is None:
+            return
+        values = self._price_settings_from_previous()
+        self.start_price_var.set(values["start_price"])
+        self.years_var.set(values["years"])
+        self.num_runs_var.set(values["num_runs"])
 
     def _get_selected_strategy(self):
         name = self.strategy_var.get()
@@ -526,6 +730,19 @@ class SimulatorApp:
                                    title="Invalid input")
             return None
 
+        # Zero is legitimate for both (a lump sum with no further
+        # contributions, or contributions with no starting capital), but
+        # NEGATIVE is not, and it fails silently rather than loudly: a
+        # negative monthly income drives available_cash below zero, every
+        # buy then clamps to 0.0, and total_capital_available goes
+        # negative -- which flips the sign of total_return_pct and
+        # produces a confidently-displayed, meaningless percentage
+        # instead of an error.
+        if starting_savings < 0 or monthly_income < 0:
+            Messagebox.show_error(message="Starting savings and monthly income cannot be negative.",
+                                   title="Invalid input")
+            return None
+
         return {
             "start_price": start_price, "years": years,
             "starting_savings": starting_savings, "monthly_income": monthly_income,
@@ -556,6 +773,7 @@ class SimulatorApp:
             num_runs=inputs["num_runs"], reuse_prices=reuse,
         )
         self.previous_prices = result.price_series_used
+        self._sync_locked_price_settings()  # keep locked fields matching the series reuse would now use
         self._restore_normal_layout()  # in case this was clicked while Compare All's table was showing
         self._render_investing_results(result, strategy.name, strategy.description)
 
@@ -568,6 +786,7 @@ class SimulatorApp:
                                starting_savings=10_000.0, monthly_income=300.0,
                                num_runs=50, reuse_prices=None)
         self.previous_prices = result.price_series_used
+        self._sync_locked_price_settings()  # keep locked fields matching the series reuse would now use
         self._restore_normal_layout()  # in case this was clicked while Compare All's table was showing
         self._render_investing_results(result, strategy.name, strategy.description)
 
@@ -576,9 +795,21 @@ class SimulatorApp:
         if inputs is None:
             return
 
-        # Every preset, plus the custom strategy if one has been configured.
+        # Every preset, every strategy saved this session, plus the
+        # currently-configured custom strategy if it wasn't itself saved.
+        #
+        # The saved list was previously omitted entirely: only
+        # self.custom_strategy (the MOST RECENTLY built one) made it into
+        # the comparison, so a user who built and saved five variations --
+        # exactly what the save feature exists for -- saw only the last
+        # one here, while all five sat selectable in the dropdown.
+        #
+        # The `not in` check prevents a saved strategy appearing twice:
+        # Strategy is a plain dataclass, so `==` compares field-wise and
+        # correctly identifies the just-saved object as already present.
         strategies = [factory() for _name, factory in presets.ALL_PRESETS.values()]
-        if self.custom_strategy is not None:
+        strategies.extend(self.saved_strategies)
+        if self.custom_strategy is not None and self.custom_strategy not in self.saved_strategies:
             strategies.append(self.custom_strategy)
 
         price_params = PriceGeneratorParams(start_price=inputs["start_price"], years=inputs["years"])
@@ -590,6 +821,15 @@ class SimulatorApp:
             )
             self._last_compare_rows = rows
             self._last_compare_market_result = market_result
+            # Compare All generates a fresh shared price set that every
+            # strategy in the table was tested against, so it IS "the
+            # previous run's data" from the user's point of view. Without
+            # this, "Reuse previous run's data" silently reached past it
+            # to whatever single-strategy run came before -- meaning a
+            # follow-up single run could not be compared against the
+            # table it was meant to drill into.
+            self.previous_prices = market_result.price_series_used
+            self._sync_locked_price_settings()
             self._enter_compare_mode()
             self._show_compare_table()
         except Exception as exc:
@@ -651,7 +891,12 @@ class SimulatorApp:
         # the pack order (settings, output, chart instead of settings,
         # chart, output).
         self.chart_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        self.stats_container.configure(width=self.OUTPUT_WIDTH_PX)
+        # Height is reset alongside width because _enter_compare_mode sets
+        # BOTH explicitly. fill=tk.Y currently overrides a stale height so
+        # this is invisible today -- but leaving one half of a paired
+        # configure() un-reverted is exactly the kind of asymmetry that
+        # breaks the first time the packing options change.
+        self.stats_container.configure(width=self.OUTPUT_WIDTH_PX, height=0)
         self.stats_container.pack(side=tk.LEFT, fill=tk.Y)
         self.switch_to_graph_button.grid_remove()
         self.switch_to_graph_button.configure(text="Switch to Graph")
@@ -686,6 +931,15 @@ class SimulatorApp:
     def _show_compare_table(self) -> None:
         self.compare_view = "table"
         self.switch_to_graph_button.configure(text="Switch to Graph")
+        # _render_comparison_table destroys the graph's canvas WIDGET, but
+        # that doesn't release the matplotlib Figure behind it -- pyplot
+        # holds its own global reference. Without this, one figure was
+        # leaked per toggle back to the table. Bounded (the figure is
+        # eventually closed on leaving compare mode), but inconsistent
+        # with the explicit plt.close() cleanup used everywhere else.
+        if self._compare_graph_fig is not None:
+            plt.close(self._compare_graph_fig)
+            self._compare_graph_fig = None
         self._render_comparison_table(self._last_compare_rows)
 
     def _show_compare_graph(self) -> None:
@@ -997,6 +1251,46 @@ def main() -> None:
                      bordercolor=gui_theme.ACCENT_PRIMARY)
     style.map("TCombobox", fieldbackground=[("readonly", gui_theme.BG_CARD)],
               foreground=[("readonly", gui_theme.TEXT_CREAM)])
+
+    # --- Locked appearance for the price-defining settings ---
+    #
+    # Start price / Years / Number of runs are put into state="readonly"
+    # while "Reuse previous run's data" is selected (see
+    # SimulatorApp._lock_price_settings). Their locked look is supplied
+    # here as a READONLY-STATE MAP ON THE SHARED "TEntry" STYLE, rather
+    # than as a separate style the widgets get swapped to.
+    #
+    # Two reasons for that choice:
+    #   1. FONT. A ttk Entry does not reliably take -font from its style
+    #      (unlike Button, where this file bakes font into every style).
+    #      An earlier version defined "Editable.TEntry"/"Locked.TEntry"
+    #      with font=("", 14) and swapped between them; the font was
+    #      ignored and those three fields rendered noticeably smaller
+    #      than Starting savings / Monthly income. Leaving the widgets on
+    #      the default TEntry style with their own font=("", 14) kwarg --
+    #      identical to every other settings entry -- removes that whole
+    #      failure mode.
+    #   2. It also avoids setting `style` and `font` on the same widget,
+    #      the combination ttkbootstrap has raised "unknown option -font"
+    #      on elsewhere in this project.
+    #
+    # Safe to map globally: NO other Entry in this application is ever
+    # put into the readonly state (the custom-strategy dialog's entries
+    # and the savings/income fields are always "normal", and the two
+    # readonly dropdowns are TCombobox, a different style). So this map
+    # applies to the three locked fields and nothing else.
+    #
+    # fieldbackground/bordercolor/lightcolor/darkcolor all resolve to
+    # CHART_BG -- the same hex as the window and the settings panel
+    # behind it -- so a locked field's fill AND its border both vanish
+    # into the background rather than reading as an input box that is
+    # merely ignoring you. Text drops to ACCENT_MUTED for the same reason.
+    style.map("TEntry",
+              fieldbackground=[("readonly", gui_theme.CHART_BG)],
+              foreground=[("readonly", gui_theme.ACCENT_MUTED)],
+              bordercolor=[("readonly", gui_theme.CHART_BG)],
+              lightcolor=[("readonly", gui_theme.CHART_BG)],
+              darkcolor=[("readonly", gui_theme.CHART_BG)])
 
     # Quick Run's color is deliberately the SAME gui_theme constant as the
     # chart's median line (ACCENT_MUTED) -- both reference gui_theme
