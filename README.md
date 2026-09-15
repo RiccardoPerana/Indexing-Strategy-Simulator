@@ -1,33 +1,41 @@
 # Indexing Strategy Simulator
 
-![Python](https://img.shields.io/badge/python-3.9%2B-blue)
-![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
+![Static Site](https://img.shields.io/badge/static%20site-HTML%20%2F%20CSS%20%2F%20JS-blue)
+![No Build Step](https://img.shields.io/badge/build%20step-none-lightgrey)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-![Indexing Strategy Simulator main window](screenshots/main-window.png)
+**[Try it live](https://riccardoperana.github.io/Indexing-Strategy-Simulator/)** — no install, runs entirely in your browser.
 
-A backtesting tool for capital accumulation indexing strategies,
-such as Dollar Cost Averaging. This tool allows to define a strategy 
-as a set of rules ("buy more during a crash," "escalate contributions 
-the longer a downturn runs"), and to test it against randomly generated 
-price histories, to evaluate its effectiveness or compare it against 
-other strategies.
+![Indexing Strategy Simulator main window](screenshots/main-window.jpg)
+
+A backtesting tool for capital accumulation indexing strategies, such as
+Dollar Cost Averaging. It runs entirely in your browser: define a
+strategy as a set of rules ("buy more during a crash," "escalate
+contributions the longer a downturn runs"), then test it against
+randomly generated price histories to evaluate its effectiveness or
+compare it against other strategies.
 
 Prices are randomly generated rather than drawn from historical market
-data as a deliberate choice. See [Design philosophy](#design-philosophy) 
+data as a deliberate choice. See [Design philosophy](#design-philosophy)
 for the reasoning.
 
 ## Features
 
-- **Rule-based strategy engine** — every strategy is defined as data, 
-  not custom code: a list of trigger → action rules. There are twelve 
+- **Rule-based strategy engine** — every strategy is defined as data,
+  not custom code: a list of trigger → action rules. There are twelve
   built-in strategies to cover common approaches: dollar-cost averaging,
-  crash buying, momentum, drawdown-based accumulation, and others, and 
-  the program features a builder to support the creation of custom strategies.
+  crash buying, momentum, drawdown-based accumulation, and others.
+- **Visual logic-block strategy builder** — build your own strategy by
+  dragging condition, logic-gate, and action blocks onto a canvas and
+  wiring them together, rather than writing rules by hand. Conditions
+  cover market events, losing/winning streaks, return thresholds,
+  drawdown from peak, fixed price levels, moving-average crosses (simple
+  and exponential), a fast/slow dual-MA cross, and RSI overbought/
+  oversold — combinable with ALL / ANY / NOT logic gates.
 - **Randomized price simulation** — Geometric Brownian Motion with jump
-  diffusion is used for the creation of time series. Each backtest run 
-  samples its own market regime rather than assuming one fixed growth rate, 
-  so that results reflect a genuine range of possible outcomes. 
+  diffusion is used for the creation of time series. Each backtest run
+  samples its own market regime rather than assuming one fixed growth
+  rate, so that results reflect a genuine range of possible outcomes.
   See [How prices are generated](#how-prices-are-generated).
 - **Median-first statistics** — return, annualized return, and ending
   value are reported as medians rather than averages. See
@@ -40,7 +48,7 @@ for the reasoning.
   between linear and logarithmic price scales, with automatic
   highlighting of sustained multi-year rallies and declines.
 - **Custom strategies** can be saved for the current session, so several
-  variations can be built and compared without re-entering rules each
+  variations can be built and compared without rebuilding them each
   time. Saved strategies join the dropdown and are included in
   **Compare All** alongside the built-in presets. A saved strategy whose
   name is already taken is numbered automatically (`Custom Strategy`,
@@ -49,46 +57,22 @@ for the reasoning.
 
 ## Screenshots
 
-### Compare All
-![Compare All table and graph toggle](screenshots/compare-all-table.gif)
-
 ### Custom Strategy Builder
-![Custom strategy dialog](screenshots/custom-strategy-dialog.png)
+![Logic-block custom strategy builder](screenshots/custom-strategy-builder.jpg)
 
-### Linear vs. logarithmic scale
-![Linear and log scale comparison](screenshots/scale-comparison.png)
+### Compare All
+![Compare All table](screenshots/compare-all-table.jpg)
 
-## Installation
+## Getting started
 
-### Run from source
+No installation, no build step, no dependencies — this is a static
+HTML/CSS/JS app that runs entirely client-side.
 
-Requires Python 3.9+.
-Compatible with all major operating systems.
+**Use it right now:** [riccardoperana.github.io/Indexing-Strategy-Simulator](https://riccardoperana.github.io/Indexing-Strategy-Simulator/) — hosted for free on GitHub Pages, deployed automatically from `main` via `.github/workflows/pages.yml`.
 
-```bash
-pip install -r requirements.txt
-python gui_tk.py
-```
-
-### Standalone Windows executable
-
-This is the easiest option for installation:
-**[download the latest build from Releases](../../releases/latest)**
-— no Python installation needed at all.
-
-To build one yourself instead:
-
-```bash
-build_exe.bat
-```
-
-Or double click the .bat file.
-This runs on Windows only (see [Building a standalone executable](#building-a-standalone-executable)
-below for details and why).
-This creates a `dist\` folder containing a single standalone
-`IndexingStrategySimulator.exe` — that one file is the whole
-application. (A `build\` folder appears alongside it holding
-PyInstaller's intermediate files; it can be ignored or deleted.)
+**Run it locally:** open `index.html` directly in a browser (double-click
+it, or `start index.html` / `open index.html`), or serve the folder with
+anything static, e.g. `python -m http.server`.
 
 ## Usage
 
@@ -103,7 +87,7 @@ Settings on the left, chart in the middle, results on the right.
    compared on identical markets — see
    [Reusing price data](#reusing-price-data) below.
 3. Pick a strategy from the dropdown, or choose **Custom...** to build
-   your own from triggers and actions.
+   your own with the logic-block builder.
 4. **Run Backtest** to simulate your current settings, or **Quick Run**
    to run preset #1 with all defaults instantly.
 5. **Compare All** runs every strategy — presets plus any custom
@@ -119,9 +103,9 @@ Settings on the left, chart in the middle, results on the right.
 Starting price, years, and number of runs are properties of the price
 *series*, fixed when it was generated. Selecting **Reuse previous run's
 data** therefore locks those three fields: they snap to the stored
-series' actual values and become read-only, greyed into the panel
-background, until *Generate new data* is selected again (at which point
-whatever you had typed before is restored).
+series' actual values and become read-only until *Generate new data* is
+selected again (at which point whatever you had typed before is
+restored).
 
 Starting savings, monthly contribution, and the chosen strategy stay
 editable throughout — those are applied by the simulator rather than the
@@ -140,11 +124,11 @@ one specific sequence of events.
 Prices are generated randomly rather than drawn from a real market's
 history. Testing a strategy against one specific historical sequence
 — the S&P 500's last 50 years, for example — invites the "past
-performance is not indicative of future results" problem. A strategy 
-fit to perform well on one historical path would be considered a good 
+performance is not indicative of future results" problem. A strategy
+fit to perform well on one historical path would be considered a good
 performer, even when it would not be advisable to use in any other market.
 A rule such as "buy double after a 20% decline" will look excellent when
-tested against a market that happened to recover from every one of its 
+tested against a market that happened to recover from every one of its
 declines; but that says nothing about how the rule would perform against
 a market that does not recover in the same way.
 
@@ -155,9 +139,7 @@ calibration (see [How prices are generated](#how-prices-are-generated)).
 Everything else about a given run — the specific path, the timing of
 downturns, volatility clustering — is left to chance by design, so a
 strategy is evaluated against a genuine distribution of possible
-markets rather than a single historical anecdote. Sourcing clean,
-correctly licensed historical data was also a substantial undertaking in
-its own right, and secondary to the reasoning above.
+markets rather than a single historical anecdote.
 
 ### Median, not average
 
@@ -203,11 +185,11 @@ and spikes on top of ordinary month-to-month variation:
 
 No run uses a single fixed expected return. Each simulation run samples
 its own annual drift and volatility once, at the start of that run, from
-ranges defined in `price_generator.py`, so a backtest's results reflect
-a genuine distribution of possible market conditions rather than one
-scripted outcome. The jump asymmetry is compensated for automatically:
-a run sampled at 0% drift averages to 0% in practice, rather than being
-silently pulled down by the crash/bubble imbalance.
+ranges defined in `js/price_generator.js`, so a backtest's results
+reflect a genuine distribution of possible market conditions rather than
+one scripted outcome. The jump asymmetry is compensated for
+automatically: a run sampled at 0% drift averages to 0% in practice,
+rather than being silently pulled down by the crash/bubble imbalance.
 
 ## Market events
 
@@ -228,7 +210,7 @@ what strategy triggers react to (see
 Gain and Loss are defined up to 6% rather than 5%, closing what would
 otherwise be an undefined 5%–6% band and ensuring every possible return
 maps to exactly one event with no gaps or overlaps — see
-`market_events.py` for the classification logic and the reasoning
+`js/market_events.js` for the classification logic and the reasoning
 behind that specific boundary.
 
 A return landing exactly **on** a threshold is assigned to the milder of
@@ -244,10 +226,10 @@ Every strategy is data: a list of **rules**, where each rule pairs a
 **trigger** (the condition under which it fires) with an **action**
 (the resulting adjustment to that month's buy amount).
 
-```python
-Rule(
-    trigger=Trigger(type="event", event=MarketEvent.CRASH),
-    action=Action(type="set_fixed", value=float("inf")),  # buy as much as possible
+```js
+new Rule(
+  new Trigger({ type: "event", event: MarketEvent.CRASH }),
+  new Action({ type: "set_fixed", value: Infinity })  // buy as much as possible
 )
 ```
 
@@ -257,7 +239,8 @@ streak-escalation rule therefore compose rather than compete: a 1.5x
 loss multiplier combined with a +1x/month streak escalation, on a
 3-month streak, produces 1.5 × 3 = 4.5x the base amount. If no rule
 matches, the base buy (the monthly contribution, unless overridden) is
-used unchanged.
+used unchanged. The **Custom Strategy Builder** compiles the block graph
+you draw directly into this same Rule/Trigger/Action structure.
 
 **Trigger types:**
 - `"event"` — fires on a specific [market event](#market-events)
@@ -267,10 +250,24 @@ used unchanged.
   for thresholds that fall outside the six named events
 - `"drawdown_from_peak"` — fires when price is a given fraction below
   the highest price reached so far in the simulation
+- `"price_threshold"` — fires when price is above/below a fixed € level
+- `"ma_cross"` / `"ema_cross"` — fires the month price crosses a moving
+  average (simple or exponential)
+- `"ma_state"` / `"ema_state"` — fires while price is currently above/
+  below a moving average
+- `"ma_dual_cross"` — fires when a fast SMA crosses a slow SMA (a
+  classic golden-cross/death-cross)
+- `"rsi_threshold"` — fires when Wilder's RSI crosses above/below a
+  level
+- `"logic"` — a compound trigger combining several child triggers with
+  `mode: "all"` (AND), `"any"` (OR), or `"not"` (negates its one child)
+
+Moving-average, RSI, and price-level triggers are all in **months**, not
+trading days — this simulator has no daily resolution.
 
 **Action types:**
 - `"multiply"` — scales the base buy (2.0 = double, 0.5 = half)
-- `"set_fixed"` — buys exactly this amount (`float('inf')` = as much as
+- `"set_fixed"` — buys exactly this amount (`Infinity` = as much as
   available cash allows)
 - `"add_fixed"` — adds a flat amount to the base buy
 - `"skip"` — buys nothing this month
@@ -280,58 +277,50 @@ used unchanged.
 ### Adding a new strategy
 
 No changes to the simulation engine are required. Add a factory function
-to `presets.py` that returns a `Strategy` built from rules, and register
-it in `ALL_PRESETS`.
+to `js/presets.js` that returns a `Strategy` built from rules, and
+register it in `ALL_PRESETS`.
 
 ## Project structure
 
 | File | Responsibility |
 |---|---|
-| `market_events.py` | Classifies a month's return into one of six named events (Crash / Extreme Loss / Loss / Gain / Extreme Gain / Bubble) |
-| `price_generator.py` | Generates random monthly price histories (GBM + jump diffusion) |
-| `strategy.py` | The rule engine: `Trigger` + `Action` + `Rule` + `Strategy` |
-| `presets.py` | Built-in example strategies, built entirely from the rule engine |
-| `simulator.py` | Runs one strategy against one price history, month by month |
-| `backtest.py` | Runs N simulations, aggregates stats, and powers Compare All |
-| `saved_strategies.py` | Session-only persistence for custom strategies built via the GUI |
-| `dashboard.py` | Chart-drawing and stats formatting used by the GUI |
-| `interactive_chart.py` | Click-drag pan / scroll-wheel zoom for the chart |
-| `gui_theme.py` | Color palette and ttkbootstrap theme registration for the GUI |
-| `gui_tk.py` | The desktop GUI (Tkinter + ttk, themed with ttkbootstrap) — main entry point |
-
-## Building a standalone executable
-
-`build_exe.bat` uses [PyInstaller](https://pyinstaller.org/) to bundle
-the GUI and all its dependencies into a single `IndexingStrategySimulator.exe`
-that runs on any Windows machine with no Python installation required.
-
-This has to be run **on Windows** — PyInstaller builds an executable for
-whatever operating system it runs on; it can't cross-compile a Windows
-`.exe` from Linux or macOS. If you're distributing to Mac or Linux users,
-run the same script (renamed `build_exe.sh` with the equivalent
-`pyinstaller` command) on that platform instead.
+| `index.html` | Page structure: settings/chart/output layout and the Custom Strategy Builder modal |
+| `css/style.css` | The dark navy/cream theme, shared by the page chrome and the chart |
+| `js/market_events.js` | Classifies a month's return into one of six named events |
+| `js/price_generator.js` | Generates random monthly price histories (GBM + jump diffusion) |
+| `js/indicators.js` | SMA/EMA/RSI computation for the block editor's indicator conditions |
+| `js/strategy.js` | The rule engine: `Trigger` + `Action` + `Rule` + `Strategy` |
+| `js/presets.js` | Built-in example strategies, built entirely from the rule engine |
+| `js/simulator.js` | Runs one strategy against one price history, month by month |
+| `js/backtest.js` | Runs N simulations, aggregates stats, and powers Compare All |
+| `js/theme.js` | Color palette shared between the page and the chart |
+| `js/dashboard.js` | Stats formatting and sustained-trend detection for the chart |
+| `js/chart.js` | Canvas 2D chart rendering, pan/zoom, and hover tooltip |
+| `js/block_editor.js` | The drag-and-drop logic-block Custom Strategy Builder |
+| `js/app.js` | UI wiring — the main entry point |
 
 ## Known scope decisions
 
 - **Selling is not implemented.** The project is scoped around wealth
   *accumulation* strategies specifically, rather than trade timing in the
   buy/sell sense. A meaningful part of what a moving-average-triggered
-  approach would add is already covered by the drawdown-from-peak and
-  streak-based triggers already in the rule engine (buying more after
-  sustained declines or gains), so a literal sell action was judged a
-  larger scope expansion than a genuinely new analytical capability.
-  `Strategy.allow_selling` remains reserved for this.
+  approach would add is already covered by the moving-average, RSI, and
+  drawdown-from-peak conditions in the rule engine, so a literal sell
+  action was judged a larger scope expansion than a genuinely new
+  analytical capability. `Strategy.allowSelling` remains reserved for
+  this.
+- **No volume-based conditions.** The price generator only ever
+  simulates price, never trading volume, so indicators like a volume
+  spike or dry-up have no data to compute from.
 - **No fees or expense ratios.** Real index funds carry costs that
   compound meaningfully over a 50-year horizon. Omitted deliberately in
   this version: the settings screen already asks for several inputs, and
-  each additional parameter reduces how approachable the tool is. A
-  reasonable candidate for a future version, but not a prerequisite for
-  the core mechanics.
+  each additional parameter reduces how approachable the tool is.
 - **No historical backtesting.** Prices are synthetic by design; see
   [Design philosophy](#design-philosophy) for the full reasoning.
-- **Saved custom strategies are session-only**, deleted when the GUI
-  closes. This was simpler than building a management/delete interface
-  for a feature capped at 10 entries.
+- **Saved custom strategies are session-only**, kept in memory and
+  cleared on page reload. This was simpler than adding persistence for a
+  feature capped at 10 entries.
 
 ## License
 
