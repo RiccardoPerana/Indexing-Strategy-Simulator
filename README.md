@@ -5,7 +5,6 @@
 [![Live Demo](https://img.shields.io/badge/demo-live-2ea44f?style=flat-square)](https://riccardoperana.github.io/Indexing-Strategy-Simulator/)
 [![Deploy](https://img.shields.io/github/actions/workflow/status/RiccardoPerana/Indexing-Strategy-Simulator/pages.yml?branch=main&label=deploy&style=flat-square)](https://github.com/RiccardoPerana/Indexing-Strategy-Simulator/actions/workflows/pages.yml)
 ![Vanilla JS](https://img.shields.io/badge/stack-HTML%20%C2%B7%20CSS%20%C2%B7%20JS-f7df1e?style=flat-square)
-![Zero dependencies](https://img.shields.io/badge/dependencies-0-blue?style=flat-square)
 [![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)
 
 [Features](#features) ·
