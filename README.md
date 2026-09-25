@@ -8,7 +8,6 @@
 ![Zero dependencies](https://img.shields.io/badge/dependencies-0-blue?style=flat-square)
 [![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)
 
-[**Try it live**](https://riccardoperana.github.io/Indexing-Strategy-Simulator/) ·
 [Features](#features) ·
 [Getting started](#getting-started) ·
 [Findings](#findings) ·
