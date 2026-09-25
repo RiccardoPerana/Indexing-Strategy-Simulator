@@ -398,7 +398,4 @@ which this model deliberately leaves out. The findings are strongest as a
 statement about what timing rules *cannot* do without such patterns.
 
 ## License
-
-[MIT](LICENSE) — see the `LICENSE` file. Update the copyright holder name
-in that file before publishing if you'd like your name on it specifically
-rather than the generic placeholder.
+[MIT](LICENSE) — see the `LICENSE` file.
