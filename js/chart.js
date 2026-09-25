@@ -76,13 +76,22 @@ function mountPriceChart(container, data, options = {}) {
 
   container.innerHTML = "";
   container.classList.add("chart-host");
+
+  // The canvas lives inside an absolutely positioned "stage" that fills
+  // the container but is taken out of normal flow. That breaks the
+  // resize feedback loop: the container's size is decided purely by the
+  // page layout, the canvas is sized to match it, and the canvas can
+  // never push the container (and therefore itself) any bigger.
+  const stage = document.createElement("div");
+  stage.className = "chart-stage";
+  container.appendChild(stage);
   const canvas = document.createElement("canvas");
   canvas.className = "chart-canvas";
-  container.appendChild(canvas);
+  stage.appendChild(canvas);
   const tooltip = document.createElement("div");
   tooltip.className = "chart-tooltip";
   tooltip.hidden = true;
-  container.appendChild(tooltip);
+  stage.appendChild(tooltip);
 
   const ctx = canvas.getContext("2d");
   let dpr = window.devicePixelRatio || 1;
@@ -329,10 +338,16 @@ function mountPriceChart(container, data, options = {}) {
   }
 
   function resize() {
-    const rect = container.getBoundingClientRect();
-    cssW = Math.max(200, rect.width);
-    cssH = Math.max(200, rect.height);
-    dpr = window.devicePixelRatio || 1;
+    const rect = stage.getBoundingClientRect();
+    // Hidden containers (e.g. the single-run chart while Compare mode is
+    // showing) measure 0x0 -- skip them rather than drawing a squashed
+    // chart; the observer fires again once they're visible.
+    if (rect.width < 1 || rect.height < 1) return;
+    const newDpr = window.devicePixelRatio || 1;
+    if (rect.width === cssW && rect.height === cssH && newDpr === dpr) return;
+    cssW = rect.width;
+    cssH = rect.height;
+    dpr = newDpr;
     canvas.width = Math.round(cssW * dpr);
     canvas.height = Math.round(cssH * dpr);
     canvas.style.width = cssW + "px";
@@ -391,7 +406,7 @@ function mountPriceChart(container, data, options = {}) {
     dragState.lastY = py;
   });
 
-  window.addEventListener("mousemove", (e) => {
+  function onWindowMouseMove(e) {
     if (dragState.mode === null) return;
     const rect = canvas.getBoundingClientRect();
     const px = e.clientX - rect.left, py = e.clientY - rect.top;
@@ -416,9 +431,15 @@ function mountPriceChart(container, data, options = {}) {
     dragState.lastX = px;
     dragState.lastY = py;
     draw();
-  });
+  }
 
-  window.addEventListener("mouseup", () => { dragState.mode = null; });
+  function onWindowMouseUp() { dragState.mode = null; }
+
+  // Window-level so a drag keeps working when the cursor leaves the
+  // canvas. Removed again in destroy() so re-rendered charts don't pile
+  // up stale listeners that keep old charts alive in memory.
+  window.addEventListener("mousemove", onWindowMouseMove);
+  window.addEventListener("mouseup", onWindowMouseUp);
 
   canvas.addEventListener("mousemove", (e) => {
     if (dragState.mode !== null) { tooltip.hidden = true; return; }
@@ -449,7 +470,7 @@ function mountPriceChart(container, data, options = {}) {
   canvas.addEventListener("mouseleave", () => { tooltip.hidden = true; });
 
   const ro = new ResizeObserver(resize);
-  ro.observe(container);
+  ro.observe(stage);
   resize();
 
   return {
@@ -460,6 +481,8 @@ function mountPriceChart(container, data, options = {}) {
     },
     destroy() {
       ro.disconnect();
+      window.removeEventListener("mousemove", onWindowMouseMove);
+      window.removeEventListener("mouseup", onWindowMouseUp);
     },
   };
 }

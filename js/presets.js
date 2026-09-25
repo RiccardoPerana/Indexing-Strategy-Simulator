@@ -147,6 +147,26 @@ function escalateOnLossStreak(increment = 1.0, cap = 5.0) {
   });
 }
 
+function trendGuardedDeployment(period = 120) {
+  const years = period / 12;
+  return new Strategy({
+    name: "Trend-Guarded Deployment",
+    description:
+      `Invests all available capital every month, like Full Capital Deployment, except while the index ` +
+      `trades below its ${years}-year moving average: then it buys nothing and lets cash build up, and ` +
+      `deploys that cash in full as soon as the index climbs back above the average. It gives up a small ` +
+      `amount of typical return in exchange for a much better outcome in markets stuck in a long decline.`,
+    rules: [
+      // Rule order matters: the skip rule runs last so it overrides the
+      // all-in rules on any month the index is below its long-run average.
+      ...Object.values(MarketEvent).map(
+        (e) => new Rule(new Trigger({ type: "event", event: e }), new Action({ type: "set_fixed", value: Infinity }))
+      ),
+      new Rule(new Trigger({ type: "ma_state", period, side: "below" }), new Action({ type: "skip" })),
+    ],
+  });
+}
+
 // key -> (display name, zero-arg factory function), used to populate the
 // strategy dropdown.
 const ALL_PRESETS = {
@@ -162,6 +182,7 @@ const ALL_PRESETS = {
   "10": ["Progressive Downturn Accumulation", escalateOnLossStreak],
   "11": ["Momentum Chasing", momentumChasing],
   "12": ["Drawdown Accumulation", drawdownBuying],
+  "13": ["Trend-Guarded Deployment", trendGuardedDeployment],
 };
 
 const PRESET_NAMES = Object.values(ALL_PRESETS).map(([name]) => name);

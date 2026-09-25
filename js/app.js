@@ -462,7 +462,11 @@
       const wrap = document.createElement("div");
       wrap.className = "compare-graph-wrap";
       el.compareContent.appendChild(wrap);
-      state.compareChartController = mountChartFromResult(wrap, state.lastCompareMarketResult);
+      // Mount into a padding-free inner host: the wrap keeps its padding
+      // for spacing, the host is exactly the drawable area.
+      const host = document.createElement("div");
+      wrap.appendChild(host);
+      state.compareChartController = mountChartFromResult(host, state.lastCompareMarketResult);
     } else {
       const note = document.createElement("p");
       note.className = "empty-note";
