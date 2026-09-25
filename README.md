@@ -22,7 +22,7 @@ for the reasoning.
 ## Features
 
 - **Rule-based strategy engine** — every strategy is defined as data,
-  not custom code: a list of trigger → action rules. There are twelve
+  not custom code: a list of trigger → action rules. There are thirteen
   built-in strategies to cover common approaches: dollar-cost averaging,
   crash buying, momentum, drawdown-based accumulation, and others.
 - **Visual logic-block strategy builder** — build your own strategy by
@@ -111,6 +111,52 @@ Starting savings, monthly contribution, and the chosen strategy stay
 editable throughout — those are applied by the simulator rather than the
 price generator, and varying them against fixed price data is the point
 of the feature.
+
+## Findings
+
+What the simulator shows once you run every strategy many times. Numbers
+below come from 3,000 shared 50-year markets with the default settings
+(€10,000 starting savings, €300/month); rerunning gives slightly
+different figures but the same ordering.
+
+**1. Getting money into the market early beats timing it.** Full Capital
+Deployment has the highest median ending wealth in every configuration
+tested (20, 30 and 50 years; €10k and €100k starting savings). Every
+other buying rule beats it in only about 20–35% of individual markets.
+Most "smart" rules are really rules for *holding cash longer*, and cash
+earns nothing while the market drifts upward.
+
+| Strategy (50 years) | Median ending wealth | Worst 5% of markets | Beats Full Deployment in |
+|---|---|---|---|
+| Full Capital Deployment | ~€460k | ~€68k | — |
+| Trend-Guarded Deployment | ~€455k | ~€104k | ~21% of markets |
+| Standard Dollar-Cost Averaging | ~€426k | ~€77k | ~27% of markets |
+
+**2. Reacting to last month's move doesn't help, by construction.** The
+price model draws each month's return independently, so a crash, a
+losing streak or a bubble month says nothing about what happens next.
+Crash-buying, momentum, and streak rules can only change *when* cash goes
+in, not the odds of the next month. This mirrors the real-world finding
+that short-term returns are close to unpredictable.
+
+**3. The one signal with real information is the long-run trend.** Each
+run has its own hidden growth rate, and a very long moving average
+slowly reveals it. Trend-Guarded Deployment (all-in, but pause buying
+while the index is below its 10-year average) gives up roughly 1% of
+median wealth and in return lifts the worst-5% outcome by about 50%. It
+is insurance against the rare market that never recovers, not a way to
+earn more on average.
+
+**4. Some headline metrics can be gamed.** Capital Efficiency only counts
+money that was actually invested, so a strategy that buys only in rare
+crash months can score well on it while leaving most of its savings idle.
+Compare strategies on Total Return (which counts idle cash) first.
+
+**The caveat.** These are properties of the price model: independent
+monthly returns, a positive average drift, and no fees or taxes. Real
+markets show some short-term momentum and long-term mean reversion,
+which this model deliberately leaves out. The findings are strongest as a
+statement about what timing rules *cannot* do without such patterns.
 
 ## Design philosophy
 
