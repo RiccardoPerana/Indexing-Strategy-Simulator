@@ -1,8 +1,20 @@
+<div align="center">
+
 # Indexing Strategy Simulator
 
-![Static Site](https://img.shields.io/badge/static%20site-HTML%20%2F%20CSS%20%2F%20JS-blue)
-![No Build Step](https://img.shields.io/badge/build%20step-none-lightgrey)
-![License](https://img.shields.io/badge/license-MIT-green)
+[![Live Demo](https://img.shields.io/badge/demo-live-2ea44f?style=flat-square)](https://riccardoperana.github.io/Indexing-Strategy-Simulator/)
+[![Deploy](https://img.shields.io/github/actions/workflow/status/RiccardoPerana/Indexing-Strategy-Simulator/pages.yml?branch=main&label=deploy&style=flat-square)](https://github.com/RiccardoPerana/Indexing-Strategy-Simulator/actions/workflows/pages.yml)
+![Vanilla JS](https://img.shields.io/badge/stack-HTML%20%C2%B7%20CSS%20%C2%B7%20JS-f7df1e?style=flat-square)
+![Zero dependencies](https://img.shields.io/badge/dependencies-0-blue?style=flat-square)
+[![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)
+
+[**Try it live**](https://riccardoperana.github.io/Indexing-Strategy-Simulator/) ·
+[Features](#features) ·
+[Getting started](#getting-started) ·
+[Findings](#findings) ·
+[How it works](#how-the-strategy-engine-works)
+
+</div>
 
 **[Try it live](https://riccardoperana.github.io/Indexing-Strategy-Simulator/)** — no install, runs entirely in your browser.
 
@@ -18,6 +30,22 @@ compare it against other strategies.
 Prices are randomly generated rather than drawn from historical market
 data as a deliberate choice. See [Design philosophy](#design-philosophy)
 for the reasoning.
+
+## Table of contents
+
+- [Features](#features)
+- [Screenshots](#screenshots)
+- [Getting started](#getting-started)
+- [Usage](#usage)
+  - [Reusing price data](#reusing-price-data)
+- [Design philosophy](#design-philosophy)
+- [How prices are generated](#how-prices-are-generated)
+- [Market events](#market-events)
+- [How the strategy engine works](#how-the-strategy-engine-works)
+- [Project structure](#project-structure)
+- [Known scope decisions](#known-scope-decisions)
+- [Findings](#findings)
+- [License](#license)
 
 ## Features
 
