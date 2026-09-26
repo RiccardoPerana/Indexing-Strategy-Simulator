@@ -74,7 +74,7 @@
     <main id="chart-panel">
       <div id="chart-placeholder">
         <h2>Welcome</h2>
-        <p>Configure settings on the left and click "Run Backtest"<br>
+        <p>Configure settings <span class="side-only">on the left</span><span class="stacked-only">above</span> and click "Run Backtest"<br>
            (or just "Quick Run") to see results here.</p>
       </div>
       <div id="chart-host" hidden></div>
@@ -98,53 +98,59 @@
   <div class="modal-card modal-card-wide">
     <div class="be-titlebar">
       <h2>Custom Strategy Builder</h2>
-      <p class="be-hint-full">Drag Blocks from the left banner onto the canvas and connect them to create a rule</p>
+      <p class="be-hint-full">Drag Blocks from the <span class="be-side-only">left</span><span class="be-stacked-only">top</span> banner onto the canvas and connect them to create a rule</p>
     </div>
 
     <div class="block-editor">
       <div class="block-palette" id="be-palette">
         <div class="palette-group">
           <div class="palette-group-title">Conditions</div>
-          <div class="palette-item" data-kind="condition" data-type="event"><span class="be-dot be-dot-condition"></span>Market Event</div>
-          <div class="palette-item" data-kind="condition" data-type="sequential_loss"><span class="be-dot be-dot-condition"></span>Losing Streak</div>
-          <div class="palette-item" data-kind="condition" data-type="sequential_gain"><span class="be-dot be-dot-condition"></span>Winning Streak</div>
-          <div class="palette-item" data-kind="condition" data-type="return_threshold"><span class="be-dot be-dot-condition"></span>Return Threshold</div>
-          <div class="palette-item" data-kind="condition" data-type="drawdown_from_peak"><span class="be-dot be-dot-condition"></span>Drawdown From Peak</div>
-          <div class="palette-item" data-kind="condition" data-type="above_price"><span class="be-dot be-dot-condition"></span>Above Price</div>
-          <div class="palette-item" data-kind="condition" data-type="below_price"><span class="be-dot be-dot-condition"></span>Below Price</div>
-          <div class="palette-item" data-kind="condition" data-type="ma_cross_up"><span class="be-dot be-dot-condition"></span>MA Cross Up</div>
-          <div class="palette-item" data-kind="condition" data-type="ma_cross_down"><span class="be-dot be-dot-condition"></span>MA Cross Down</div>
-          <div class="palette-item" data-kind="condition" data-type="above_ma"><span class="be-dot be-dot-condition"></span>Above MA</div>
-          <div class="palette-item" data-kind="condition" data-type="below_ma"><span class="be-dot be-dot-condition"></span>Below MA</div>
-          <div class="palette-item" data-kind="condition" data-type="fast_ma_cross_up"><span class="be-dot be-dot-condition"></span>Fast MA Cross Up</div>
-          <div class="palette-item" data-kind="condition" data-type="fast_ma_cross_down"><span class="be-dot be-dot-condition"></span>Fast MA Cross Down</div>
-          <div class="palette-item" data-kind="condition" data-type="ema_cross_up"><span class="be-dot be-dot-condition"></span>EMA Cross Up</div>
-          <div class="palette-item" data-kind="condition" data-type="ema_cross_down"><span class="be-dot be-dot-condition"></span>EMA Cross Down</div>
-          <div class="palette-item" data-kind="condition" data-type="above_ema"><span class="be-dot be-dot-condition"></span>Above EMA</div>
-          <div class="palette-item" data-kind="condition" data-type="below_ema"><span class="be-dot be-dot-condition"></span>Below EMA</div>
-          <div class="palette-item" data-kind="condition" data-type="rsi_above"><span class="be-dot be-dot-condition"></span>RSI Above</div>
-          <div class="palette-item" data-kind="condition" data-type="rsi_below"><span class="be-dot be-dot-condition"></span>RSI Below</div>
+          <div class="palette-items">
+            <div class="palette-item" data-kind="condition" data-type="event"><span class="be-dot be-dot-condition"></span>Market Event</div>
+            <div class="palette-item" data-kind="condition" data-type="sequential_loss"><span class="be-dot be-dot-condition"></span>Losing Streak</div>
+            <div class="palette-item" data-kind="condition" data-type="sequential_gain"><span class="be-dot be-dot-condition"></span>Winning Streak</div>
+            <div class="palette-item" data-kind="condition" data-type="return_threshold"><span class="be-dot be-dot-condition"></span>Return Threshold</div>
+            <div class="palette-item" data-kind="condition" data-type="drawdown_from_peak"><span class="be-dot be-dot-condition"></span>Drawdown From Peak</div>
+            <div class="palette-item" data-kind="condition" data-type="above_price"><span class="be-dot be-dot-condition"></span>Above Price</div>
+            <div class="palette-item" data-kind="condition" data-type="below_price"><span class="be-dot be-dot-condition"></span>Below Price</div>
+            <div class="palette-item" data-kind="condition" data-type="ma_cross_up"><span class="be-dot be-dot-condition"></span>MA Cross Up</div>
+            <div class="palette-item" data-kind="condition" data-type="ma_cross_down"><span class="be-dot be-dot-condition"></span>MA Cross Down</div>
+            <div class="palette-item" data-kind="condition" data-type="above_ma"><span class="be-dot be-dot-condition"></span>Above MA</div>
+            <div class="palette-item" data-kind="condition" data-type="below_ma"><span class="be-dot be-dot-condition"></span>Below MA</div>
+            <div class="palette-item" data-kind="condition" data-type="fast_ma_cross_up"><span class="be-dot be-dot-condition"></span>Fast MA Cross Up</div>
+            <div class="palette-item" data-kind="condition" data-type="fast_ma_cross_down"><span class="be-dot be-dot-condition"></span>Fast MA Cross Down</div>
+            <div class="palette-item" data-kind="condition" data-type="ema_cross_up"><span class="be-dot be-dot-condition"></span>EMA Cross Up</div>
+            <div class="palette-item" data-kind="condition" data-type="ema_cross_down"><span class="be-dot be-dot-condition"></span>EMA Cross Down</div>
+            <div class="palette-item" data-kind="condition" data-type="above_ema"><span class="be-dot be-dot-condition"></span>Above EMA</div>
+            <div class="palette-item" data-kind="condition" data-type="below_ema"><span class="be-dot be-dot-condition"></span>Below EMA</div>
+            <div class="palette-item" data-kind="condition" data-type="rsi_above"><span class="be-dot be-dot-condition"></span>RSI Above</div>
+            <div class="palette-item" data-kind="condition" data-type="rsi_below"><span class="be-dot be-dot-condition"></span>RSI Below</div>
+          </div>
         </div>
         <div class="palette-group">
           <div class="palette-group-title">Logic</div>
-          <div class="palette-item" data-kind="logic" data-type="all"><span class="be-dot be-dot-logic"></span>ALL of these</div>
-          <div class="palette-item" data-kind="logic" data-type="any"><span class="be-dot be-dot-logic"></span>ANY of these</div>
-          <div class="palette-item" data-kind="logic" data-type="not"><span class="be-dot be-dot-logic"></span>NOT</div>
+          <div class="palette-items">
+            <div class="palette-item" data-kind="logic" data-type="all"><span class="be-dot be-dot-logic"></span>ALL of these</div>
+            <div class="palette-item" data-kind="logic" data-type="any"><span class="be-dot be-dot-logic"></span>ANY of these</div>
+            <div class="palette-item" data-kind="logic" data-type="not"><span class="be-dot be-dot-logic"></span>NOT</div>
+          </div>
         </div>
         <div class="palette-group">
           <div class="palette-group-title">Actions</div>
-          <div class="palette-item" data-kind="action" data-type="multiply"><span class="be-dot be-dot-action"></span>Multiply Buy</div>
-          <div class="palette-item" data-kind="action" data-type="set_fixed"><span class="be-dot be-dot-action"></span>Set Fixed Buy</div>
-          <div class="palette-item" data-kind="action" data-type="add_fixed"><span class="be-dot be-dot-action"></span>Add To Buy</div>
-          <div class="palette-item" data-kind="action" data-type="skip"><span class="be-dot be-dot-action"></span>Skip Buy</div>
-          <div class="palette-item" data-kind="action" data-type="scale_with_streak"><span class="be-dot be-dot-action"></span>Scale With Streak</div>
+          <div class="palette-items">
+            <div class="palette-item" data-kind="action" data-type="multiply"><span class="be-dot be-dot-action"></span>Multiply Buy</div>
+            <div class="palette-item" data-kind="action" data-type="set_fixed"><span class="be-dot be-dot-action"></span>Set Fixed Buy</div>
+            <div class="palette-item" data-kind="action" data-type="add_fixed"><span class="be-dot be-dot-action"></span>Add To Buy</div>
+            <div class="palette-item" data-kind="action" data-type="skip"><span class="be-dot be-dot-action"></span>Skip Buy</div>
+            <div class="palette-item" data-kind="action" data-type="scale_with_streak"><span class="be-dot be-dot-action"></span>Scale With Streak</div>
+          </div>
         </div>
         <button id="be-clear" type="button" class="btn btn-switch be-clear-btn">Clear canvas</button>
       </div>
       <div class="block-canvas-viewport" id="be-viewport">
         <div class="block-canvas" id="be-canvas">
           <svg id="be-svg" class="be-svg"></svg>
-          <p class="be-empty-hint" id="be-empty-hint">Drag a block from the left to get started.</p>
+          <p class="be-empty-hint" id="be-empty-hint">Drag a block from <span class="be-side-only">the left</span><span class="be-stacked-only">above</span> to get started.</p>
         </div>
       </div>
     </div>
