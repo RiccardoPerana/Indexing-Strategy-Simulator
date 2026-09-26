@@ -53,6 +53,7 @@
     btnSwitchGraph: document.getElementById("btn-switch-graph"),
     btnScaleToggle: document.getElementById("btn-scale-toggle"),
 
+    chartPanel: document.getElementById("chart-panel"),
     chartPlaceholder: document.getElementById("chart-placeholder"),
     chartHost: document.getElementById("chart-host"),
 
@@ -80,6 +81,14 @@
   // it reports cycle-detection errors (the only failure mode inside the
   // block graph itself) through this global instead.
   window.showAppError = showError;
+
+  // On a narrow screen the panels stack (see the max-width: 980px CSS),
+  // putting the results below the settings and buttons -- off screen on a
+  // phone, so a run looked like it had done nothing. Bring them into view.
+  const stackedLayout = window.matchMedia("(max-width: 980px)");
+  function revealOnStackedLayout(target) {
+    if (stackedLayout.matches) target.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   // ------------------------------------------------------------------
   // Strategy dropdown
@@ -328,6 +337,7 @@
     syncLockedPriceSettings();
     restoreNormalLayout();
     renderInvestingResults(result, strategy.name, strategy.description);
+    revealOnStackedLayout(el.chartPanel);
   });
 
   el.btnQuick.addEventListener("click", () => {
@@ -346,6 +356,7 @@
     syncLockedPriceSettings();
     restoreNormalLayout();
     renderInvestingResults(result, strategy.name, strategy.description);
+    revealOnStackedLayout(el.chartPanel);
   });
 
   el.btnCompare.addEventListener("click", () => {
@@ -373,6 +384,7 @@
       syncLockedPriceSettings();
       enterCompareMode();
       showCompareTable();
+      revealOnStackedLayout(el.compareContent);
     } catch (exc) {
       showError(`Compare All failed: ${exc.message || exc}`);
       restoreNormalLayout();
@@ -413,6 +425,7 @@
   el.btnSwitchGraph.addEventListener("click", () => {
     if (state.compareView === "table") showCompareGraph();
     else showCompareTable();
+    revealOnStackedLayout(el.compareContent);
   });
 
   el.btnScaleToggle.addEventListener("click", () => {
