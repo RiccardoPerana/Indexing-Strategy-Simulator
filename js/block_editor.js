@@ -626,10 +626,14 @@ const BlockEditor = (function () {
       function onMove(ev) {
         positionGhost(ghost, ev.clientX, ev.clientY);
       }
-      function onUp(ev) {
+      function stop() {
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", stop);
         ghost.remove();
+      }
+      function onUp(ev) {
+        stop();
         const vpRect = viewportEl.getBoundingClientRect();
         if (ev.clientX >= vpRect.left && ev.clientX <= vpRect.right && ev.clientY >= vpRect.top && ev.clientY <= vpRect.bottom) {
           const canvasRect = canvasEl.getBoundingClientRect();
@@ -638,6 +642,9 @@ const BlockEditor = (function () {
       }
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
+      // On a phone a sideways swipe scrolls the palette strip instead (see
+      // .palette-item in the CSS); the browser then cancels the pointer.
+      window.addEventListener("pointercancel", stop);
     });
   }
 
