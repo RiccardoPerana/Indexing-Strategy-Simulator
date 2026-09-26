@@ -362,6 +362,9 @@ table.compare-table td.rank-colored { font-weight: 700; border-radius: 4px; }
   height: 0;
 }
 .palette-group { display: flex; flex-direction: column; gap: 4px; }
+/* A plain pass-through here; on a phone it lays the items out as a
+   sideways-scrolling strip (see the max-width: 700px block). */
+.palette-items { display: contents; }
 .palette-group-title {
   font-size: 10px;
   font-weight: 700;
@@ -509,11 +512,30 @@ table.compare-table td.rank-colored { font-weight: 700; border-radius: 4px; }
   cursor: grabbing;
 }
 
+/* Wording that names where the palette is: beside the canvas, or (on a
+   phone) above it. */
+.be-stacked-only { display: none; }
+
 @media (max-width: 700px) {
-  .modal-card-wide { width: 96vw; height: min(920px, 96vh); max-height: min(920px, 96vh); }
+  .modal-card-wide { width: 96vw; height: min(920px, 96vh); max-height: min(920px, 96vh); padding: 14px; }
+  .be-side-only { display: none; }
+  .be-stacked-only { display: inline; }
   .block-editor { flex-direction: column; }
-  .block-palette { flex: 0 0 auto; flex-direction: row; flex-wrap: wrap; max-height: 140px; }
-  .palette-group { flex: 1 1 140px; }
+  /* The palette sits above the canvas as one strip that scrolls sideways,
+     three blocks deep. A sideways swipe scrolls it; dragging a block down
+     carries it onto the canvas -- which is why the items allow pan-x only.
+     As a vertically scrolling box, every swipe on a block started a drag,
+     so the Logic and Action blocks below were hard to reach. */
+  .block-palette {
+    flex: 0 0 auto; flex-direction: row; flex-wrap: nowrap; gap: 14px;
+    overflow-x: auto; overflow-y: hidden; max-height: none; padding: 8px 10px;
+  }
+  .block-palette::-webkit-scrollbar { height: 6px; }
+  .palette-group { flex: 0 0 auto; }
+  .palette-items { display: grid; grid-auto-flow: column; grid-template-rows: repeat(3, auto); gap: 4px 6px; }
+  .palette-item { touch-action: pan-x; white-space: nowrap; }
+  .be-clear-btn { flex: 0 0 auto; align-self: flex-end; margin-top: 0; white-space: nowrap; }
+  .be-empty-hint { white-space: normal; width: 80%; text-align: center; }
 }
 
 .kv-rows { display: flex; flex-direction: column; gap: 4px; }
@@ -576,9 +598,38 @@ table.compare-table td.rank-colored { font-weight: 700; border-radius: 4px; }
 
 /* ---------------------------- responsive ---------------------------- */
 
+.stacked-only { display: none; }
+
 @media (max-width: 980px) {
   #layout { flex-direction: column; }
   #settings-panel, #output-panel { width: 100%; }
   #chart-panel { height: 420px; }
+  /* Before the first run there is only the welcome note: no need to hold
+     the chart's full height open for it. */
+  #chart-panel:has(> #chart-host[hidden]) { height: auto; }
   #layout.compare-mode #output-panel { width: 100%; }
+  .side-only { display: none; }
+  .stacked-only { display: inline; }
+}
+
+@media (max-width: 700px) {
+  /* 16px text: iOS zooms the page in on any smaller field when it takes
+     focus, and leaves it zoomed. */
+  input[type="text"], input[type="number"], select, textarea { font-size: 16px; }
+  .be-param-row input[type="text"], .be-param-row select { font-size: 11px; }
+  /* Compare All: the table scrolls sideways; the strategy column stays
+     pinned, and wraps, so every row keeps its name while the figures
+     scroll past. */
+  table.compare-table th:first-child,
+  table.compare-table td:first-child {
+    position: sticky; left: 0; z-index: 1;
+    background: var(--bg-darkest);
+    white-space: normal; min-width: 120px; max-width: 150px;
+    box-shadow: inset -1px 0 0 var(--accent-primary);
+  }
+  /* The wrap's side padding moves onto the cells: as padding, the scrolled
+     figures showed through it beside the pinned column. */
+  .compare-table-wrap { padding-left: 0; padding-right: 0; }
+  table.compare-table th:first-child, table.compare-table td:first-child { padding-left: 10px; }
+  table.compare-table th:last-child, table.compare-table td:last-child { padding-right: 10px; }
 }
