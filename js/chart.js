@@ -64,14 +64,15 @@ const AXIS_STRIP = 28; // pixel margin outside the plot area that counts as "dra
 /**
  * Mounts an interactive price chart into `container` (any block element;
  * its contents are replaced). `data` = { sampleSeries, median,
- * declineSegments, rallySegments, numRuns, title }. `options.yScale` =
+ * declineSegments, rallySegments, numRuns }. `options.yScale` =
  * "linear" | "log".
  *
- * Returns a controller with setYScale(scale) to rebuild in place.
+ * Returns a controller whose destroy() detaches its listeners; changing
+ * the scale means mounting a new chart.
  */
 function mountPriceChart(container, data, options = {}) {
-  let yScale = options.yScale || "linear";
-  const { sampleSeries, median: medianPrices, declineSegments, rallySegments, numRuns, title } = data;
+  const yScale = options.yScale || "linear";
+  const { sampleSeries, median: medianPrices, declineSegments, rallySegments, numRuns } = data;
   const yearsAxis = medianPrices.map((_, i) => i / 12);
 
   container.innerHTML = "";
@@ -249,7 +250,7 @@ function mountPriceChart(container, data, options = {}) {
     // title
     ctx.textAlign = "left";
     ctx.font = "bold 13px system-ui, sans-serif";
-    ctx.fillText(title || `Median Index Price (${numRuns} runs)`, r.x, 22);
+    ctx.fillText(`Median Index Price (${numRuns} runs)`, r.x, 22);
 
     // plot series, clipped to the plot rect
     ctx.save();
@@ -482,11 +483,6 @@ function mountPriceChart(container, data, options = {}) {
   resize();
 
   return {
-    setYScale(scale) {
-      yScale = scale;
-      fitView();
-      draw();
-    },
     destroy() {
       ro.disconnect();
       window.removeEventListener("mousemove", onWindowMouseMove);

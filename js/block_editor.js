@@ -33,14 +33,14 @@ const BlockEditor = (function () {
       kind: "condition",
       label: "Losing Streak",
       dot: "condition",
-      params: [{ key: "streak", label: "Months", type: "number", default: 2, min: 1, step: 1 }],
+      params: [{ key: "streak", label: "Months", type: "number", default: 2, min: 1, integer: true }],
       toTrigger: (p) => new Trigger({ type: "sequential_loss", streak: p.streak }),
     },
     condition_sequential_gain: {
       kind: "condition",
       label: "Winning Streak",
       dot: "condition",
-      params: [{ key: "streak", label: "Months", type: "number", default: 2, min: 1, step: 1 }],
+      params: [{ key: "streak", label: "Months", type: "number", default: 2, min: 1, integer: true }],
       toTrigger: (p) => new Trigger({ type: "sequential_gain", streak: p.streak }),
     },
     condition_return_threshold: {
@@ -60,7 +60,7 @@ const BlockEditor = (function () {
           ],
           default: "lte",
         },
-        { key: "value", label: "Return %", type: "number", default: -5, step: 0.5 },
+        { key: "value", label: "Return %", type: "number", default: -5 },
       ],
       toTrigger: (p) => new Trigger({ type: "return_threshold", operator: p.operator, value: p.value / 100 }),
     },
@@ -68,49 +68,49 @@ const BlockEditor = (function () {
       kind: "condition",
       label: "Drawdown From Peak",
       dot: "condition",
-      params: [{ key: "value", label: "Drop %", type: "number", default: 20, min: 0, step: 1 }],
+      params: [{ key: "value", label: "Drop %", type: "number", default: 20, min: 0, max: 100 }],
       toTrigger: (p) => new Trigger({ type: "drawdown_from_peak", value: -Math.abs(p.value) / 100 }),
     },
     condition_above_price: {
       kind: "condition",
       label: "Above Price",
       dot: "condition",
-      params: [{ key: "value", label: "Price (€)", type: "number", default: 150, step: 1 }],
+      params: [{ key: "value", label: "Price (€)", type: "number", default: 150 }],
       toTrigger: (p) => new Trigger({ type: "price_threshold", operator: "gt", value: p.value }),
     },
     condition_below_price: {
       kind: "condition",
       label: "Below Price",
       dot: "condition",
-      params: [{ key: "value", label: "Price (€)", type: "number", default: 80, step: 1 }],
+      params: [{ key: "value", label: "Price (€)", type: "number", default: 80 }],
       toTrigger: (p) => new Trigger({ type: "price_threshold", operator: "lt", value: p.value }),
     },
     condition_ma_cross_up: {
       kind: "condition",
       label: "MA Cross Up",
       dot: "condition",
-      params: [{ key: "period", label: "MA Months", type: "number", default: 12, min: 1, step: 1 }],
+      params: [{ key: "period", label: "MA Months", type: "number", default: 12, min: 1, integer: true }],
       toTrigger: (p) => new Trigger({ type: "ma_cross", period: p.period, direction: "up" }),
     },
     condition_ma_cross_down: {
       kind: "condition",
       label: "MA Cross Down",
       dot: "condition",
-      params: [{ key: "period", label: "MA Months", type: "number", default: 12, min: 1, step: 1 }],
+      params: [{ key: "period", label: "MA Months", type: "number", default: 12, min: 1, integer: true }],
       toTrigger: (p) => new Trigger({ type: "ma_cross", period: p.period, direction: "down" }),
     },
     condition_above_ma: {
       kind: "condition",
       label: "Above MA",
       dot: "condition",
-      params: [{ key: "period", label: "MA Months", type: "number", default: 12, min: 1, step: 1 }],
+      params: [{ key: "period", label: "MA Months", type: "number", default: 12, min: 1, integer: true }],
       toTrigger: (p) => new Trigger({ type: "ma_state", period: p.period, side: "above" }),
     },
     condition_below_ma: {
       kind: "condition",
       label: "Below MA",
       dot: "condition",
-      params: [{ key: "period", label: "MA Months", type: "number", default: 12, min: 1, step: 1 }],
+      params: [{ key: "period", label: "MA Months", type: "number", default: 12, min: 1, integer: true }],
       toTrigger: (p) => new Trigger({ type: "ma_state", period: p.period, side: "below" }),
     },
     condition_fast_ma_cross_up: {
@@ -118,8 +118,8 @@ const BlockEditor = (function () {
       label: "Fast MA Cross Up",
       dot: "condition",
       params: [
-        { key: "fastPeriod", label: "Fast Months", type: "number", default: 3, min: 1, step: 1 },
-        { key: "slowPeriod", label: "Slow Months", type: "number", default: 12, min: 1, step: 1 },
+        { key: "fastPeriod", label: "Fast Months", type: "number", default: 3, min: 1, integer: true },
+        { key: "slowPeriod", label: "Slow Months", type: "number", default: 12, min: 1, integer: true },
       ],
       toTrigger: (p) => new Trigger({ type: "ma_dual_cross", fastPeriod: p.fastPeriod, slowPeriod: p.slowPeriod, direction: "up" }),
     },
@@ -128,8 +128,8 @@ const BlockEditor = (function () {
       label: "Fast MA Cross Down",
       dot: "condition",
       params: [
-        { key: "fastPeriod", label: "Fast Months", type: "number", default: 3, min: 1, step: 1 },
-        { key: "slowPeriod", label: "Slow Months", type: "number", default: 12, min: 1, step: 1 },
+        { key: "fastPeriod", label: "Fast Months", type: "number", default: 3, min: 1, integer: true },
+        { key: "slowPeriod", label: "Slow Months", type: "number", default: 12, min: 1, integer: true },
       ],
       toTrigger: (p) => new Trigger({ type: "ma_dual_cross", fastPeriod: p.fastPeriod, slowPeriod: p.slowPeriod, direction: "down" }),
     },
@@ -137,28 +137,28 @@ const BlockEditor = (function () {
       kind: "condition",
       label: "EMA Cross Up",
       dot: "condition",
-      params: [{ key: "period", label: "EMA Months", type: "number", default: 12, min: 1, step: 1 }],
+      params: [{ key: "period", label: "EMA Months", type: "number", default: 12, min: 1, integer: true }],
       toTrigger: (p) => new Trigger({ type: "ema_cross", period: p.period, direction: "up" }),
     },
     condition_ema_cross_down: {
       kind: "condition",
       label: "EMA Cross Down",
       dot: "condition",
-      params: [{ key: "period", label: "EMA Months", type: "number", default: 12, min: 1, step: 1 }],
+      params: [{ key: "period", label: "EMA Months", type: "number", default: 12, min: 1, integer: true }],
       toTrigger: (p) => new Trigger({ type: "ema_cross", period: p.period, direction: "down" }),
     },
     condition_above_ema: {
       kind: "condition",
       label: "Above EMA",
       dot: "condition",
-      params: [{ key: "period", label: "EMA Months", type: "number", default: 12, min: 1, step: 1 }],
+      params: [{ key: "period", label: "EMA Months", type: "number", default: 12, min: 1, integer: true }],
       toTrigger: (p) => new Trigger({ type: "ema_state", period: p.period, side: "above" }),
     },
     condition_below_ema: {
       kind: "condition",
       label: "Below EMA",
       dot: "condition",
-      params: [{ key: "period", label: "EMA Months", type: "number", default: 12, min: 1, step: 1 }],
+      params: [{ key: "period", label: "EMA Months", type: "number", default: 12, min: 1, integer: true }],
       toTrigger: (p) => new Trigger({ type: "ema_state", period: p.period, side: "below" }),
     },
     condition_rsi_above: {
@@ -166,8 +166,8 @@ const BlockEditor = (function () {
       label: "RSI Above",
       dot: "condition",
       params: [
-        { key: "period", label: "RSI Months", type: "number", default: 14, min: 1, step: 1 },
-        { key: "value", label: "RSI Level", type: "number", default: 70, min: 0, max: 100, step: 1 },
+        { key: "period", label: "RSI Months", type: "number", default: 14, min: 1, integer: true },
+        { key: "value", label: "RSI Level", type: "number", default: 70, min: 0, max: 100 },
       ],
       toTrigger: (p) => new Trigger({ type: "rsi_threshold", period: p.period, operator: "gte", value: p.value }),
     },
@@ -176,8 +176,8 @@ const BlockEditor = (function () {
       label: "RSI Below",
       dot: "condition",
       params: [
-        { key: "period", label: "RSI Months", type: "number", default: 14, min: 1, step: 1 },
-        { key: "value", label: "RSI Level", type: "number", default: 30, min: 0, max: 100, step: 1 },
+        { key: "period", label: "RSI Months", type: "number", default: 14, min: 1, integer: true },
+        { key: "value", label: "RSI Level", type: "number", default: 30, min: 0, max: 100 },
       ],
       toTrigger: (p) => new Trigger({ type: "rsi_threshold", period: p.period, operator: "lte", value: p.value }),
     },
@@ -206,7 +206,7 @@ const BlockEditor = (function () {
       kind: "action",
       label: "Multiply Buy",
       dot: "action",
-      params: [{ key: "value", label: "Factor ×", type: "number", default: 2, step: 0.1 }],
+      params: [{ key: "value", label: "Factor ×", type: "number", default: 2 }],
       toAction: (p) => new Action({ type: "multiply", value: p.value }),
     },
     action_set_fixed: {
@@ -215,7 +215,7 @@ const BlockEditor = (function () {
       dot: "action",
       params: [
         { key: "allCash", label: "Use all available cash", type: "checkbox", default: false },
-        { key: "value", label: "Amount (€)", type: "number", default: 500, step: 50, showIf: (p) => !p.allCash },
+        { key: "value", label: "Amount (€)", type: "number", default: 500, showIf: (p) => !p.allCash },
       ],
       toAction: (p) => new Action({ type: "set_fixed", value: p.allCash ? Infinity : p.value }),
     },
@@ -223,7 +223,7 @@ const BlockEditor = (function () {
       kind: "action",
       label: "Add To Buy",
       dot: "action",
-      params: [{ key: "value", label: "Amount (€)", type: "number", default: 200, step: 50 }],
+      params: [{ key: "value", label: "Amount (€)", type: "number", default: 200 }],
       toAction: (p) => new Action({ type: "add_fixed", value: p.value }),
     },
     action_skip: {
@@ -238,9 +238,9 @@ const BlockEditor = (function () {
       label: "Scale With Streak",
       dot: "action",
       params: [
-        { key: "start", label: "Start ×", type: "number", default: 1, step: 0.1 },
-        { key: "increment", label: "+ per month", type: "number", default: 1, step: 0.1 },
-        { key: "cap", label: "Cap", type: "number", default: null, step: 0.1, optional: true },
+        { key: "start", label: "Start ×", type: "number", default: 1 },
+        { key: "increment", label: "+ per month", type: "number", default: 1 },
+        { key: "cap", label: "Cap", type: "number", default: null, optional: true },
       ],
       toAction: (p) =>
         new Action({
@@ -339,17 +339,17 @@ const BlockEditor = (function () {
   // ------------------------------------------------------------------
   // Compiling to the simulation engine
   // ------------------------------------------------------------------
-  function buildTrigger(nodeId, guard) {
-    guard = guard || new Set();
-    if (guard.has(nodeId)) return null;
-    guard.add(nodeId);
+  // No cycle guard needed: connect() refuses any edge that would close a
+  // loop. A condition feeding several gates is built once per gate, so
+  // each branch keeps every condition wired into it.
+  function buildTrigger(nodeId) {
     const node = nodesById(nodeId);
     if (!node) return null;
     const def = nodeDef(node);
     if (node.kind === "condition") return def.toTrigger(node.params);
     if (node.kind === "logic") {
       const childIds = edges.filter((e) => e.to === nodeId).map((e) => e.from);
-      const children = childIds.map((id) => buildTrigger(id, guard)).filter(Boolean);
+      const children = childIds.map((id) => buildTrigger(id)).filter(Boolean);
       if (!children.length) return null;
       return new Trigger({ type: "logic", mode: def.mode, children });
     }
@@ -552,8 +552,16 @@ const BlockEditor = (function () {
             if (raw === "" && p.optional) {
               node.params[p.key] = null;
             } else {
-              const num = Number(raw);
-              node.params[p.key] = Number.isFinite(num) ? num : node.params[p.key];
+              // Out-of-range or fractional values would otherwise reach the
+              // engine: a 0-month streak matches every month, and a 0, negative
+              // or fractional period turns every indicator value into NaN.
+              let num = Number(raw);
+              if (Number.isFinite(num)) {
+                if (p.integer) num = Math.round(num);
+                if (p.min !== undefined) num = Math.max(p.min, num);
+                if (p.max !== undefined) num = Math.min(p.max, num);
+                node.params[p.key] = num;
+              }
             }
           }
           renderAll();
@@ -668,5 +676,5 @@ const BlockEditor = (function () {
     renderAll();
   }
 
-  return { mount, compile, clearAll };
+  return { mount, compile };
 })();

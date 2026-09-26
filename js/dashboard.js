@@ -6,10 +6,9 @@
  * highlight segments of the median price line.
  */
 
-// Backtest stats as grouped {label, value, raw} rows. `raw` is the
-// signed numeric value for rows
-// where sign has real meaning (for coloring); null otherwise. For the
-// IQR row, `raw` is [low, high].
+// Backtest stats as [groupTitle, rows] pairs, each row a [label, value, raw]
+// triple. `raw` is the signed number for rows where the sign matters (for
+// coloring), null otherwise; for the IQR row it is [low, high].
 function summaryGroups(result) {
   const s = result.summary();
   const eur = (n) => `€${Math.round(n).toLocaleString("en-US")}`;

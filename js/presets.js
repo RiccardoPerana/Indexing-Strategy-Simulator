@@ -167,22 +167,23 @@ function trendGuardedDeployment(period = 120) {
   });
 }
 
-// key -> (display name, zero-arg factory function), used to populate the
-// strategy dropdown.
-const ALL_PRESETS = {
-  "1": ["Full Capital Deployment", buyMaxEveryMonth],
-  "2": ["Front-Loaded Contribution", startHighThenIncome],
-  "3": ["Sequential Loss Amplification", multiplyOnSequentialLosses],
-  "4": ["Sequential Gain Moderation", decreaseOnSequentialGains],
-  "5": ["Crash-Triggered Maximum Allocation", maxBuyOnCrash],
-  "6": ["Broad Downturn Accumulation", maxBuyOnAnyLoss],
-  "7": ["Threshold-Based Loss Response", doubleOnLossOver5pct],
-  "8": ["Overextension Moderation", halfOnGainOver10pct],
-  "9": ["Standard Dollar-Cost Averaging", dollarCostAverage],
-  "10": ["Progressive Downturn Accumulation", escalateOnLossStreak],
-  "11": ["Momentum Chasing", momentumChasing],
-  "12": ["Drawdown Accumulation", drawdownBuying],
-  "13": ["Trend-Guarded Deployment", trendGuardedDeployment],
-};
+// Zero-argument factories, in dropdown order. The first is what Quick Run
+// uses. Each call returns a fresh Strategy; its name comes from the
+// Strategy itself, so it is written in exactly one place.
+const PRESETS = [
+  buyMaxEveryMonth,
+  startHighThenIncome,
+  multiplyOnSequentialLosses,
+  decreaseOnSequentialGains,
+  maxBuyOnCrash,
+  maxBuyOnAnyLoss,
+  doubleOnLossOver5pct,
+  halfOnGainOver10pct,
+  dollarCostAverage,
+  escalateOnLossStreak,
+  momentumChasing,
+  drawdownBuying,
+  trendGuardedDeployment,
+];
 
-const PRESET_NAMES = Object.values(ALL_PRESETS).map(([name]) => name);
+const PRESET_NAMES = PRESETS.map((factory) => factory().name);

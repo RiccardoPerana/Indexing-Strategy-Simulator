@@ -181,11 +181,10 @@ class DepletingBaseBuy {
 }
 
 class Strategy {
-  constructor({ name, rules = [], baseBuyOverride = null, allowSelling = false, description = "" }) {
+  constructor({ name, rules = [], baseBuyOverride = null, description = "" }) {
     this.name = name;
     this.rules = rules;
     this.baseBuyOverride = baseBuyOverride;
-    this.allowSelling = allowSelling;
     this.description = description;
   }
 
@@ -211,13 +210,13 @@ class Strategy {
     return Math.max(0.0, amount);
   }
 
-  // Each backtest run needs its own deep copy, so a stateful
-  // DepletingBaseBuy's patched fallback never leaks across runs.
+  // Each backtest run needs its own copy, so a stateful DepletingBaseBuy's
+  // patched fallback never leaks across runs. Triggers and actions are
+  // stateless, so a shallow copy of each is enough.
   clone() {
     return new Strategy({
       name: this.name,
       description: this.description,
-      allowSelling: this.allowSelling,
       rules: this.rules.map(
         (r) => new Rule(new Trigger({ ...r.trigger }), new Action({ ...r.action }))
       ),

@@ -83,8 +83,8 @@
   window.showAppError = showError;
 
   // On a narrow screen the panels stack (see the max-width: 980px CSS),
-  // putting the results below the settings and buttons -- off screen on a
-  // phone, so a run looked like it had done nothing. Bring them into view.
+  // putting the results below the settings and buttons, off screen on a
+  // phone. Bring them into view.
   const stackedLayout = window.matchMedia("(max-width: 980px)");
   function revealOnStackedLayout(target) {
     if (stackedLayout.matches) target.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -132,8 +132,8 @@
 
   // ------------------------------------------------------------------
   // Custom Strategy modal -- a logic-block graph builder (condition and
-  // logic-gate blocks wired into action blocks on a canvas) rather than
-  // a flat per-event multiplier form. See block_editor.js.
+  // logic-gate blocks wired into action blocks on a canvas). See
+  // block_editor.js.
   // ------------------------------------------------------------------
   BlockEditor.mount();
 
@@ -167,9 +167,8 @@
     }
   });
 
-  // Every custom strategy built via Save is saved to the dropdown for the
-  // rest of this session (up to MAX_SAVED_STRATEGIES) -- there's no
-  // separate opt-in for it.
+  // Every custom strategy built via Save is added to the dropdown for the
+  // rest of this session (up to MAX_SAVED_STRATEGIES).
   function onCustomStrategyDone(strategy) {
     state.customStrategy = strategy;
 
@@ -196,7 +195,7 @@
   }
 
   function formatG(v) {
-    // Mimics Python's "{:g}" for the handful of values this sees.
+    // Shortest readable form: integers as-is, otherwise 6 significant digits.
     if (Number.isInteger(v)) return String(v);
     return String(parseFloat(v.toPrecision(6)));
   }
@@ -268,9 +267,8 @@
       }
       return state.customStrategy;
     }
-    for (const [presetName, factory] of Object.values(ALL_PRESETS)) {
-      if (presetName === name) return factory();
-    }
+    const presetIndex = PRESET_NAMES.indexOf(name);
+    if (presetIndex !== -1) return PRESETS[presetIndex]();
     for (const saved of state.savedStrategies) {
       if (saved.name === name) return saved;
     }
@@ -341,8 +339,7 @@
   });
 
   el.btnQuick.addEventListener("click", () => {
-    const factory = ALL_PRESETS["1"][1];
-    const strategy = factory();
+    const strategy = PRESETS[0]();
     const priceParams = { startPrice: 100.0, years: 50 };
     const result = runBacktest({
       strategy,
@@ -363,7 +360,13 @@
     const inputs = parseInvestingInputs();
     if (!inputs) return;
 
-    const strategies = Object.values(ALL_PRESETS).map(([, factory]) => factory());
+    const wantsReuse = el.dataSource.value === "reuse";
+    if (wantsReuse && state.previousPrices === null) {
+      showError("No previous run to reuse yet -- run once with 'Generate new data' first.");
+      return;
+    }
+
+    const strategies = PRESETS.map((factory) => factory());
     strategies.push(...state.savedStrategies);
     if (state.customStrategy !== null && !state.savedStrategies.includes(state.customStrategy)) {
       strategies.push(state.customStrategy);
@@ -377,6 +380,7 @@
         startingSavings: inputs.startingSavings,
         monthlyIncome: inputs.monthlyIncome,
         numRuns: inputs.numRuns,
+        sharedPrices: wantsReuse ? state.previousPrices : null,
       });
       state.lastCompareRows = rows;
       state.lastCompareMarketResult = marketResult;
@@ -575,9 +579,8 @@
   // Single-strategy results (chart + stats card)
   // ------------------------------------------------------------------
   function mountChartFromResult(container, result) {
-    // Chart title is always "Median Index Price (N runs)" regardless of
-    // context. The surrounding panel heading (e.g. "Data Used for
-    // Comparison") carries that context instead.
+    // The surrounding panel heading (e.g. "Data Used for Comparison")
+    // carries the context; the chart title is always the same.
     const medianPrices = result.medianPriceByMonth();
     const { declineSegments, rallySegments } = findSustainedTrends(medianPrices);
     return mountPriceChart(

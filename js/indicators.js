@@ -9,14 +9,16 @@
  * Each function returns a full array (index-aligned with the `prices`
  * array it was given, i.e. one point per MONTH -- this simulator has no
  * daily resolution, so "period" here means months, not trading days like
- * a typical charting tool) with `null` wherever there isn't yet enough
- * history to compute a value.
+ * a typical charting tool). SMA and RSI are `null` until there is enough
+ * history to compute them; EMA is seeded with the first price, so it has
+ * a value from month 0.
  *
  * Results are cached per (prices array identity, indicator, period) via a
- * WeakMap keyed on the prices array itself -- each backtest run gets its
- * own fresh price array, so the cache never leaks between runs or needs
- * explicit invalidation, and a Trigger can recompute "its" series on
- * every call without redoing the O(months) work each time.
+ * WeakMap keyed on the prices array itself. A price array never changes
+ * once generated, so a cached series is valid for as long as the array
+ * lives (including when "Reuse previous run's data" runs it again), and a
+ * Trigger can ask for "its" series every month without redoing the
+ * O(months) work each time.
  */
 
 const Indicators = (function () {

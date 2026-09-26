@@ -1,26 +1,13 @@
 /*
  * theme.js
  *
- * The navy/cream color palette -- kept as the single source of truth for
- * both the page chrome (css/style.css uses the same hex values) and the
- * canvas chart, so nothing drifts between them.
+ * Colors that script sets directly: the canvas chart, which cannot read
+ * CSS, and the Compare All rank highlights. Everything else is styled in
+ * css/style.css; the chart values below are the same navy/cream hexes
+ * the stylesheet's custom properties use.
  */
 
 const Theme = Object.freeze({
-  BG_DARKEST: "#06162B",
-  BG_CARD: "#0B2A4A",
-  ACCENT_PRIMARY: "#1D4D7A",
-  ACCENT_MUTED: "#8FB3C7",
-  TEXT_CREAM: "#F2E9D8",
-
-  ACCENT_SUCCESS: "#3C7A5C",
-  ACCENT_WARNING: "#B8912E",
-  ACCENT_DANGER: "#A5443C",
-  ACCENT_LIGHT: "#35566E",
-
-  OUTPUT_POSITIVE: "#C1E1C1",
-  OUTPUT_NEGATIVE: "#FAA0A0",
-
   CHART_BG: "#06162B",
   CHART_TEXT: "#F2E9D8",
   CHART_GRID: "#1D4D7A",
@@ -28,9 +15,6 @@ const Theme = Object.freeze({
   CHART_DECLINE: "#A5443C",
   CHART_RALLY: "#3C7A5C",
   CHART_SAMPLE_RUNS: "#7C8B99",
-
-  COMPARE_BUTTON: "#ff964f",
-  SWITCH_GRAPH_BUTTON: "#CCCCC4",
 
   RANK_GREEN_1ST: "#91CA91",
   RANK_GREEN_2ND: "#B0D9B0",

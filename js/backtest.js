@@ -13,11 +13,9 @@ function median(values) {
   return n % 2 !== 0 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
-function mean(values) {
-  return values.reduce((a, b) => a + b, 0) / values.length;
-}
-
-// Port of Python's statistics.quantiles(data, n=4, method="inclusive").
+// The n-1 cut points dividing sorted `values` into n groups, interpolating
+// linearly between neighbouring values ("inclusive" method: the minimum
+// and maximum count as the 0th and 100th percentiles).
 function quantilesInclusive(values, n = 4) {
   const data = [...values].sort((a, b) => a - b);
   const m = data.length - 1;
@@ -69,7 +67,6 @@ class BacktestResult {
     return {
       numRuns: this.numRuns,
       medianReturnPct: median(returns) * 100,
-      avgReturnPct: mean(returns) * 100,
       iqrReturnLowPct: q1 * 100,
       iqrReturnHighPct: q3 * 100,
       medianAnnualReturnPct: median(annualReturns) * 100,
@@ -93,16 +90,16 @@ class BacktestResult {
   }
 }
 
-function runBacktest({ strategy, priceParams, startingSavings, monthlyIncome, numRuns = 50, reusePrices = null }) {
-  let priceSeriesList;
-  if (reusePrices !== null) {
-    priceSeriesList = reusePrices;
-  } else {
-    priceSeriesList = [];
-    for (let i = 0; i < numRuns; i++) {
-      priceSeriesList.push(generatePriceSeries(priceParams));
-    }
+function generatePriceSeriesList(priceParams, numRuns) {
+  const list = [];
+  for (let i = 0; i < numRuns; i++) {
+    list.push(generatePriceSeries(priceParams));
   }
+  return list;
+}
+
+function runBacktest({ strategy, priceParams, startingSavings, monthlyIncome, numRuns = 50, reusePrices = null }) {
+  const priceSeriesList = reusePrices ?? generatePriceSeriesList(priceParams, numRuns);
 
   const results = [];
   for (const prices of priceSeriesList) {
@@ -113,18 +110,10 @@ function runBacktest({ strategy, priceParams, startingSavings, monthlyIncome, nu
   return new BacktestResult(results, priceSeriesList);
 }
 
-function generateSharedPriceData(priceParams, numRuns) {
-  const list = [];
-  for (let i = 0; i < numRuns; i++) {
-    list.push(generatePriceSeries(priceParams));
-  }
-  return list;
-}
-
+// Every strategy runs against the same price histories: `sharedPrices`
+// when the caller is reusing a previous run's data, otherwise a fresh set.
 function compareStrategies({ strategies, priceParams, startingSavings, monthlyIncome, numRuns = 50, sharedPrices = null }) {
-  if (sharedPrices === null) {
-    sharedPrices = generateSharedPriceData(priceParams, numRuns);
-  }
+  sharedPrices = sharedPrices ?? generatePriceSeriesList(priceParams, numRuns);
 
   const rows = [];
   let marketResult = null;
@@ -144,7 +133,6 @@ function compareStrategies({ strategies, priceParams, startingSavings, monthlyIn
       name: strategy.name,
       medianReturnPct: s.medianReturnPct,
       medianAnnualReturnPct: s.medianAnnualReturnPct,
-      medianCashInvested: s.medianCashInvested,
       medianEndingPortfolioValue: s.medianEndingPortfolioValue,
       medianMaxDrawdownPct: s.medianMaxDrawdownPct,
       medianCapitalEfficiencyPct: s.medianCapitalEfficiencyPct,
