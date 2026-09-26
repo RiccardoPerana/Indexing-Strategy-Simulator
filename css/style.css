@@ -8,7 +8,6 @@
   --text-cream: #F2E9D8;
 
   --accent-success: #3C7A5C;
-  --accent-warning: #B8912E;
   --accent-danger: #A5443C;
   --accent-light: #35566E;
 
@@ -147,7 +146,6 @@ html, body {
 .field span { white-space: nowrap; }
 
 input[type="text"],
-input[type="number"],
 select,
 textarea {
   background: var(--bg-card);
@@ -185,10 +183,6 @@ input[readonly] {
 }
 
 .spacer { flex: 1 1 auto; }
-
-.about-link { margin-top: 8px; text-align: center; }
-.about-link a { color: var(--accent-muted); font-size: 12px; text-decoration: none; }
-.about-link a:hover { text-decoration: underline; }
 
 /* ---------------------------- buttons ---------------------------- */
 
@@ -294,7 +288,6 @@ table.compare-table td.rank-colored { font-weight: 700; border-radius: 4px; }
   overflow-y: auto;
 }
 .modal-card h2 { margin: 0 0 4px; font-size: 18px; }
-.modal-card h3 { margin: 10px 0 2px; font-size: 14px; }
 
 .modal-card-wide {
   width: min(1080px, 96vw);
@@ -523,9 +516,7 @@ table.compare-table td.rank-colored { font-weight: 700; border-radius: 4px; }
   .block-editor { flex-direction: column; }
   /* The palette sits above the canvas as one strip that scrolls sideways,
      three blocks deep. A sideways swipe scrolls it; dragging a block down
-     carries it onto the canvas -- which is why the items allow pan-x only.
-     As a vertically scrolling box, every swipe on a block started a drag,
-     so the Logic and Action blocks below were hard to reach. */
+     carries it onto the canvas -- which is why the items allow pan-x only. */
   .block-palette {
     flex: 0 0 auto; flex-direction: row; flex-wrap: nowrap; gap: 14px;
     overflow-x: auto; overflow-y: hidden; max-height: none; padding: 8px 10px;
@@ -537,16 +528,6 @@ table.compare-table td.rank-colored { font-weight: 700; border-radius: 4px; }
   .be-clear-btn { flex: 0 0 auto; align-self: flex-end; margin-top: 0; white-space: nowrap; }
   .be-empty-hint { white-space: normal; width: 80%; text-align: center; }
 }
-
-.kv-rows { display: flex; flex-direction: column; gap: 4px; }
-.kv-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 13px;
-}
-.kv-row input { max-width: 110px; text-align: right; }
 
 .cs-name-input {
   width: 100%;
@@ -565,16 +546,6 @@ table.compare-table td.rank-colored { font-weight: 700; border-radius: 4px; }
   height: calc(1.4em * 3 + 10px + 2px); /* exactly 3 text lines + the shared input padding/border */
   flex: 0 0 auto; /* same reason as .cs-name-input -- pins the fixed height against flex-shrink */
 }
-
-.checkbox-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  font-size: 12px;
-  margin-top: 12px;
-  line-height: 1.4;
-}
-.checkbox-row input { width: auto; margin-top: 2px; }
 
 .modal-actions { display: flex; gap: 8px; margin-top: 16px; }
 .modal-actions .btn { margin-top: 0; }
@@ -615,7 +586,7 @@ table.compare-table td.rank-colored { font-weight: 700; border-radius: 4px; }
 @media (max-width: 700px) {
   /* 16px text: iOS zooms the page in on any smaller field when it takes
      focus, and leaves it zoomed. */
-  input[type="text"], input[type="number"], select, textarea { font-size: 16px; }
+  input[type="text"], select, textarea { font-size: 16px; }
   .be-param-row input[type="text"], .be-param-row select { font-size: 11px; }
   /* Compare All: the table scrolls sideways; the strategy column stays
      pinned, and wraps, so every row keeps its name while the figures
@@ -627,8 +598,8 @@ table.compare-table td.rank-colored { font-weight: 700; border-radius: 4px; }
     white-space: normal; min-width: 120px; max-width: 150px;
     box-shadow: inset -1px 0 0 var(--accent-primary);
   }
-  /* The wrap's side padding moves onto the cells: as padding, the scrolled
-     figures showed through it beside the pinned column. */
+  /* The wrap's side padding moves onto the cells, so scrolled figures
+     cannot show through it beside the pinned column. */
   .compare-table-wrap { padding-left: 0; padding-right: 0; }
   table.compare-table th:first-child, table.compare-table td:first-child { padding-left: 10px; }
   table.compare-table th:last-child, table.compare-table td:last-child { padding-right: 10px; }
