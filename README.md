@@ -5,8 +5,10 @@
 [![Live Demo](https://img.shields.io/badge/demo-live-2ea44f?style=flat-square)](https://riccardoperana.github.io/Indexing-Strategy-Simulator/)
 [![Deploy](https://img.shields.io/github/actions/workflow/status/RiccardoPerana/Indexing-Strategy-Simulator/pages.yml?branch=main&label=deploy&style=flat-square)](https://github.com/RiccardoPerana/Indexing-Strategy-Simulator/actions/workflows/pages.yml)
 ![Vanilla JS](https://img.shields.io/badge/stack-HTML%20%C2%B7%20CSS%20%C2%B7%20JS-f7df1e?style=flat-square)
+![Zero dependencies](https://img.shields.io/badge/dependencies-0-blue?style=flat-square)
 [![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](LICENSE)
 
+[**Try it live**](https://riccardoperana.github.io/Indexing-Strategy-Simulator/) ·
 [Features](#features) ·
 [Getting started](#getting-started) ·
 [Findings](#findings) ·
@@ -115,12 +117,13 @@ Settings on the left, chart in the middle, results on the right.
 3. Pick a strategy from the dropdown, or choose **Custom...** to build
    your own with the logic-block builder.
 4. **Run Backtest** to simulate your current settings, or **Quick Run**
-   to run preset #1 with all defaults instantly.
+   to run the first preset with all defaults instantly.
 5. **Compare All** runs every strategy — presets plus any custom
    strategies you've built or saved this session — against identical
-   price data and ranks them in a table. Toggle between the table and
-   the underlying market chart with the button that appears at the
-   bottom of the settings panel.
+   price data (the previous run's, when *Reuse previous run's data* is
+   selected) and ranks them in a table. Toggle between the table and
+   the underlying market chart with the button that appears below
+   **Compare All**.
 6. Toggle the chart between linear and logarithmic price scale with the
    button at the very bottom of the settings panel.
 
@@ -283,7 +286,7 @@ you draw directly into this same Rule/Trigger/Action structure.
   below a moving average
 - `"ma_dual_cross"` — fires when a fast SMA crosses a slow SMA (a
   classic golden-cross/death-cross)
-- `"rsi_threshold"` — fires when Wilder's RSI crosses above/below a
+- `"rsi_threshold"` — fires while Wilder's RSI is above/below a
   level
 - `"logic"` — a compound trigger combining several child triggers with
   `mode: "all"` (AND), `"any"` (OR), or `"not"` (negates its one child)
@@ -303,15 +306,15 @@ trading days — this simulator has no daily resolution.
 ### Adding a new strategy
 
 No changes to the simulation engine are required. Add a factory function
-to `js/presets.js` that returns a `Strategy` built from rules, and
-register it in `ALL_PRESETS`.
+to `js/presets.js` that returns a `Strategy` built from rules, and add it
+to the `PRESETS` list.
 
 ## Project structure
 
 | File | Responsibility |
 |---|---|
 | `index.html` | Page structure: settings/chart/output layout and the Custom Strategy Builder modal |
-| `css/style.css` | The dark navy/cream theme, shared by the page chrome and the chart |
+| `css/style.css` | The dark navy/cream page theme |
 | `js/market_events.js` | Classifies a month's return into one of six named events |
 | `js/price_generator.js` | Generates random monthly price histories (GBM + jump diffusion) |
 | `js/indicators.js` | SMA/EMA/RSI computation for the block editor's indicator conditions |
@@ -319,7 +322,7 @@ register it in `ALL_PRESETS`.
 | `js/presets.js` | Built-in example strategies, built entirely from the rule engine |
 | `js/simulator.js` | Runs one strategy against one price history, month by month |
 | `js/backtest.js` | Runs N simulations, aggregates stats, and powers Compare All |
-| `js/theme.js` | Color palette shared between the page and the chart |
+| `js/theme.js` | Colors set from script: the canvas chart and the Compare All rank highlights |
 | `js/dashboard.js` | Stats formatting and sustained-trend detection for the chart |
 | `js/chart.js` | Canvas 2D chart rendering, pan/zoom, and hover tooltip |
 | `js/block_editor.js` | The drag-and-drop logic-block Custom Strategy Builder |
@@ -333,8 +336,7 @@ register it in `ALL_PRESETS`.
   approach would add is already covered by the moving-average, RSI, and
   drawdown-from-peak conditions in the rule engine, so a literal sell
   action was judged a larger scope expansion than a genuinely new
-  analytical capability. `Strategy.allowSelling` remains reserved for
-  this.
+  analytical capability.
 - **No volume-based conditions.** The price generator only ever
   simulates price, never trading volume, so indicators like a volume
   spike or dry-up have no data to compute from.
@@ -357,10 +359,7 @@ the default settings (€10,000 starting savings, €300/month). Run
 **Compare All** in the app to see every preset. Rerunning gives slightly
 different figures but the same pattern.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="screenshots/findings-dark.png">
-  <img alt="Two bar charts comparing three strategies. Median ending wealth: Full Capital Deployment €471k, Trend-Guarded Deployment €466k, Standard Dollar-Cost Averaging €435k. Worst 5% of markets: Full Capital Deployment €69k, Trend-Guarded Deployment €104k, Standard Dollar-Cost Averaging €78k." src="screenshots/findings-light.png">
-</picture>
+<img alt="Two bar charts comparing three strategies. Median ending wealth: Full Capital Deployment €471k, Trend-Guarded Deployment €466k, Standard Dollar-Cost Averaging €435k. Worst 5% of markets: Full Capital Deployment €69k, Trend-Guarded Deployment €104k, Standard Dollar-Cost Averaging €78k." src="screenshots/findings-dark.png">
 
 **1. Getting money into the market early beats timing it.** The highest
 median belongs to Full Capital Deployment, tied with Broad Downturn
@@ -398,4 +397,5 @@ which this model deliberately leaves out. The findings are strongest as a
 statement about what timing rules *cannot* do without such patterns.
 
 ## License
+
 [MIT](LICENSE) — see the `LICENSE` file.
