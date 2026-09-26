@@ -317,10 +317,18 @@ function mountPriceChart(container, data, options = {}) {
     if (declineSegments.length) legendItems.push(["Sustained decline", Theme.CHART_DECLINE]);
     if (rallySegments.length) legendItems.push(["Sustained rally", Theme.CHART_RALLY]);
 
+    // Items wrap onto another row when the plot is too narrow to hold them
+    // all on one (a phone), instead of running past its right edge.
     ctx.font = "11px system-ui, sans-serif";
-    let lx = r.x + 10, ly = r.y + 12;
-    const lineW = 16, gap = 8;
+    const legendLeft = r.x + 10, legendRight = r.x + r.w - 10;
+    let lx = legendLeft, ly = r.y + 12;
+    const lineW = 16, gap = 8, rowH = 16;
     for (const [label, color] of legendItems) {
+      const itemW = lineW + 5 + ctx.measureText(label).width;
+      if (lx > legendLeft && lx + itemW > legendRight) {
+        lx = legendLeft;
+        ly += rowH;
+      }
       ctx.strokeStyle = color;
       ctx.lineWidth = 2.4;
       ctx.beginPath();
@@ -331,7 +339,7 @@ function mountPriceChart(container, data, options = {}) {
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
       ctx.fillText(label, lx + lineW + 5, ly);
-      lx += lineW + 5 + ctx.measureText(label).width + gap + 10;
+      lx += itemW + gap + 10;
     }
 
     ctx.restore();
