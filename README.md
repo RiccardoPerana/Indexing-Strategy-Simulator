@@ -390,6 +390,24 @@ from the interface. The more significant ones, and how each was addressed:
   cleared on page reload. This was simpler than adding persistence for a
   feature capped at 10 entries.
 
+### Screenshots
+
+#### Custom Strategy Builder
+
+<p align="center">
+  <img src="screenshots/custom-strategy-builder.jpg"
+       alt="Logic-block custom strategy builder"
+       width="900">
+</p>
+
+#### Compare All
+
+<p align="center">
+  <img src="screenshots/compare-all-table.jpg"
+       alt="Compare All table"
+       width="900">
+</p>
+
 ## Results and performance analysis
 
 ### Findings
@@ -441,24 +459,6 @@ monthly returns, a positive average drift, and no fees or taxes. Real
 markets show some short-term momentum and long-term mean reversion,
 which this model deliberately leaves out. The findings are strongest as a
 statement about what timing rules *cannot* do without such patterns.
-
-### Screenshots
-
-#### Custom Strategy Builder
-
-<p align="center">
-  <img src="screenshots/custom-strategy-builder.jpg"
-       alt="Logic-block custom strategy builder"
-       width="900">
-</p>
-
-#### Compare All
-
-<p align="center">
-  <img src="screenshots/compare-all-table.jpg"
-       alt="Compare All table"
-       width="900">
-</p>
 
 ## License
 
